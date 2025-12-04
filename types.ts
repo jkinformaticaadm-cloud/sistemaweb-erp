@@ -50,6 +50,17 @@ export interface ServiceOrder {
   technicalNotes?: string;
 }
 
+export interface TransactionDetails {
+  customerName?: string;
+  customerAddress?: string;
+  customerPhone?: string;
+  deviceIMEI?: string;
+  deviceSerial?: string;
+  deviceBrand?: string;
+  items?: CartItem[];
+  paymentMethod?: string;
+}
+
 export interface Transaction {
   id: string;
   description: string;
@@ -57,6 +68,7 @@ export interface Transaction {
   type: TransactionType;
   date: string;
   category: string;
+  transactionDetails?: TransactionDetails;
 }
 
 export interface CartItem extends Product {
