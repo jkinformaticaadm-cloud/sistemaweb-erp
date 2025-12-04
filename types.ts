@@ -176,6 +176,8 @@ export interface InstallmentPlan {
   productName: string;
   brand: string;
   model: string;
+  color?: string; // New Field
+  storage?: string; // New Field
   serialNumber?: string;
   imei?: string;
   // Financial

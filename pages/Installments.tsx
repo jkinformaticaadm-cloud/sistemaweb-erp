@@ -2,20 +2,25 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { InstallmentPlan, Installment } from '../types';
-import { Search, Plus, Calendar, CheckCircle, AlertCircle, DollarSign, ChevronDown, ChevronUp, Edit2, Smartphone, Banknote, RefreshCcw } from 'lucide-react';
+import { Search, Plus, Calendar, CheckCircle, AlertCircle, DollarSign, ChevronDown, ChevronUp, Edit2, Smartphone, Banknote, RefreshCcw, Printer, X } from 'lucide-react';
 
 export const Installments: React.FC = () => {
-  const { installmentPlans, customers, addInstallmentPlan, payInstallment, updateInstallmentValue } = useData();
+  const { installmentPlans, customers, settings, addInstallmentPlan, payInstallment, updateInstallmentValue } = useData();
   
   const [activeTab, setActiveTab] = useState<'list' | 'new'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
+
+  // Printing State
+  const [printingPlan, setPrintingPlan] = useState<InstallmentPlan | null>(null);
 
   // Form State
   const [customerId, setCustomerId] = useState('');
   const [productName, setProductName] = useState('');
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
+  const [color, setColor] = useState('');
+  const [storage, setStorage] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [imei, setImei] = useState('');
   
@@ -57,16 +62,8 @@ export const Installments: React.FC = () => {
   };
 
   const calculateFinancials = (plan: InstallmentPlan) => {
-    const total = plan.totalValue; // This is the total value of the PRODUCT, usually. But the logic below uses it as base.
-    // Let's assume totalValue in plan is the original Total Amount agreed upon (including interest) before splitting.
-    // Actually, let's use the sum of installments + downpayments to show "Total Paid" correctly?
-    
-    // Simple view:
     const paidInstallments = plan.installments.filter(i => i.status === 'Pago').reduce((acc, i) => acc + i.value, 0);
     const remainingInstallments = plan.installments.filter(i => i.status !== 'Pago').reduce((acc, i) => acc + i.value, 0);
-    
-    // We can display the Down Payment as "Already Paid" in a separate stat or include it.
-    // For simplicity in the list view:
     return { paid: paidInstallments, remaining: remainingInstallments };
   };
 
@@ -113,6 +110,8 @@ export const Installments: React.FC = () => {
        productName,
        brand,
        model,
+       color,
+       storage,
        serialNumber,
        imei,
        totalValue: totalBase,
@@ -128,7 +127,7 @@ export const Installments: React.FC = () => {
     alert('Crediário criado com sucesso!');
     setActiveTab('list');
     // Reset form
-    setCustomerId(''); setProductName(''); setBrand(''); setModel(''); setSerialNumber(''); setImei(''); 
+    setCustomerId(''); setProductName(''); setBrand(''); setModel(''); setColor(''); setStorage(''); setSerialNumber(''); setImei(''); 
     setTotalValue(''); setCustomFee('0'); setDownPayment(''); setHasTradeIn(false); setTradeInName(''); setTradeInValue('');
   };
 
@@ -140,6 +139,91 @@ export const Installments: React.FC = () => {
            updateInstallmentValue(planId, instNum, newVal);
         }
      }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // --- Print Modal Component ---
+  const CarnetPrint = () => {
+    if (!printingPlan) return null;
+    return (
+      <div className="fixed inset-0 bg-white z-[100] overflow-y-auto hidden print:block">
+         <div className="p-8 max-w-[210mm] mx-auto"> {/* A4 Width approx */}
+            
+            {/* Header Contract */}
+            <div className="border-2 border-gray-800 p-4 mb-6 rounded-lg">
+               <div className="flex justify-between items-start border-b border-gray-400 pb-4 mb-4">
+                  <div>
+                     <h1 className="text-xl font-bold uppercase">{settings.companyName}</h1>
+                     <p className="text-sm">{settings.address}</p>
+                     <p className="text-sm">Tel: {settings.phone}</p>
+                  </div>
+                  <div className="text-right">
+                     <h2 className="text-2xl font-bold">CARNÊ DE PAGAMENTO</h2>
+                     <p className="font-mono">Contrato: #{printingPlan.id}</p>
+                     <p className="text-sm">{new Date(printingPlan.createdAt).toLocaleDateString()}</p>
+                  </div>
+               </div>
+               
+               <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                     <p><span className="font-bold">Cliente:</span> {printingPlan.customerName}</p>
+                     <p><span className="font-bold">Endereço:</span> {printingPlan.customerAddress}</p>
+                  </div>
+                  <div>
+                     <p><span className="font-bold">Produto:</span> {printingPlan.productName} {printingPlan.brand} {printingPlan.model}</p>
+                     <p>
+                        {printingPlan.color && <span className="mr-2"><strong>Cor:</strong> {printingPlan.color}</span>}
+                        {printingPlan.storage && <span><strong>Armaz:</strong> {printingPlan.storage}</span>}
+                     </p>
+                     <p><span className="font-bold">IMEI/Serial:</span> {printingPlan.imei || printingPlan.serialNumber || '-'}</p>
+                  </div>
+               </div>
+            </div>
+
+            {/* Installments Grid */}
+            <div className="grid grid-cols-3 gap-2">
+               {printingPlan.installments.map((inst) => (
+                  <div key={inst.number} className="border border-gray-400 rounded p-2 text-xs flex flex-col justify-between h-[120px] relative bg-white">
+                     {/* Cut Line */}
+                     <div className="absolute -left-[1px] top-0 bottom-0 border-l border-dashed border-gray-300"></div>
+                     
+                     <div className="flex justify-between items-center border-b border-gray-200 pb-1 mb-1">
+                        <span className="font-bold">{settings.companyName.substring(0, 15)}</span>
+                        <span className="font-mono font-bold">{inst.number}/{printingPlan.installments.length}</span>
+                     </div>
+                     
+                     <div className="space-y-1">
+                        <div className="flex justify-between">
+                           <span>Vencimento:</span>
+                           <span className="font-bold">{new Date(inst.dueDate).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                           <span>Valor:</span>
+                           <span className="font-bold text-base">R$ {inst.value.toFixed(2)}</span>
+                        </div>
+                     </div>
+
+                     <div className="mt-2 pt-2 border-t border-gray-200">
+                        <div className="flex justify-between items-center text-[10px] text-gray-500">
+                           <span>Pagamento em: ___/___/___</span>
+                        </div>
+                        <div className="text-center text-[9px] mt-1 text-gray-400">
+                           Assinatura do Recebedor
+                        </div>
+                     </div>
+                  </div>
+               ))}
+            </div>
+
+            <div className="mt-8 text-center text-xs text-gray-500">
+               <p>Documento para controle interno e comprovante de pagamento.</p>
+            </div>
+         </div>
+      </div>
+    );
   };
 
   return (
@@ -214,7 +298,18 @@ export const Installments: React.FC = () => {
                         </div>
 
                         {isExpanded && (
-                           <div className="bg-gray-50 border-t border-gray-100 p-6 animate-fade-in">
+                           <div className="bg-gray-50 border-t border-gray-100 p-6 animate-fade-in relative">
+                              
+                              {/* Action Buttons for expanded view */}
+                              <div className="absolute top-6 right-6 flex gap-2">
+                                 <button 
+                                    onClick={() => { setPrintingPlan(plan); setTimeout(() => handlePrint(), 100); }}
+                                    className="flex items-center gap-2 bg-gray-800 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-gray-700 transition-colors shadow-sm"
+                                 >
+                                    <Printer size={16}/> Imprimir Carnê
+                                 </button>
+                              </div>
+
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                                  <div>
                                     <h4 className="font-bold text-gray-700 mb-2 text-sm uppercase">Dados do Cliente</h4>
@@ -223,8 +318,16 @@ export const Installments: React.FC = () => {
                                  <div>
                                     <h4 className="font-bold text-gray-700 mb-2 text-sm uppercase">Dados do Produto</h4>
                                     <p className="text-sm text-gray-600">
-                                       <strong>Marca:</strong> {plan.brand} | <strong>Serial:</strong> {plan.serialNumber || '-'} <br/>
-                                       <strong>IMEI:</strong> {plan.imei || '-'}
+                                       <strong>Marca:</strong> {plan.brand} | <strong>Modelo:</strong> {plan.model} <br/>
+                                       {(plan.color || plan.storage) && (
+                                          <span className="block mt-1">
+                                             {plan.color && <span className="mr-2 px-1.5 py-0.5 bg-gray-200 rounded text-xs">Cor: {plan.color}</span>}
+                                             {plan.storage && <span className="px-1.5 py-0.5 bg-gray-200 rounded text-xs">Armaz: {plan.storage}</span>}
+                                          </span>
+                                       )}
+                                       <span className="block mt-1 text-xs text-gray-500">
+                                          Serial: {plan.serialNumber || '-'} | IMEI: {plan.imei || '-'}
+                                       </span>
                                     </p>
                                  </div>
                                  <div>
@@ -337,24 +440,34 @@ export const Installments: React.FC = () => {
                {/* Section 2: Product */}
                <div>
                   <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2"><Smartphone size={18}/> Dados do Produto</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <div className="md:col-span-1">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                     <div className="md:col-span-2">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Produto</label>
                         <input required placeholder="Ex: Celular" className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={productName} onChange={e => setProductName(e.target.value)} />
                      </div>
-                     <div>
+                     <div className="md:col-span-1">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Marca</label>
                         <input required placeholder="Ex: Samsung" className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={brand} onChange={e => setBrand(e.target.value)} />
                      </div>
-                     <div>
+                     <div className="md:col-span-1">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Modelo</label>
                         <input required placeholder="Ex: S23 Ultra" className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={model} onChange={e => setModel(e.target.value)} />
                      </div>
-                     <div>
+                     
+                     <div className="md:col-span-1">
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cor do Aparelho</label>
+                        <input placeholder="Ex: Preto" className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={color} onChange={e => setColor(e.target.value)} />
+                     </div>
+                     <div className="md:col-span-1">
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Armazenamento</label>
+                        <input placeholder="Ex: 128GB" className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={storage} onChange={e => setStorage(e.target.value)} />
+                     </div>
+
+                     <div className="md:col-span-1">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nº Série</label>
                         <input placeholder="Opcional" className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} />
                      </div>
-                     <div>
+                     <div className="md:col-span-1">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">IMEI</label>
                         <input placeholder="Opcional" className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" value={imei} onChange={e => setImei(e.target.value)} />
                      </div>
@@ -478,6 +591,10 @@ export const Installments: React.FC = () => {
             </form>
          </div>
       )}
+      
+      {/* Hidden Print Area */}
+      {printingPlan && <CarnetPrint />}
+      
     </div>
   );
 };
