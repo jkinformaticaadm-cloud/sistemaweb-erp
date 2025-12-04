@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem } from '../types';
+import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem, Supply, ServiceItem, Purchase } from '../types';
 
 interface DataContextType {
   customers: Customer[];
@@ -8,6 +9,10 @@ interface DataContextType {
   transactions: Transaction[];
   salesOrders: SalesOrder[];
   settings: SystemSettings;
+  supplies: Supply[];
+  services: ServiceItem[];
+  purchases: Purchase[];
+  
   addCustomer: (c: Customer) => void;
   addProduct: (p: Product) => void;
   addServiceOrder: (os: ServiceOrder) => void;
@@ -17,6 +22,12 @@ interface DataContextType {
   addSalesOrder: (order: SalesOrder) => void;
   updateSalesOrder: (id: string, updates: Partial<SalesOrder>) => void;
   updateSettings: (s: Partial<SystemSettings>) => void;
+  
+  addSupply: (s: Supply) => void;
+  updateSupplyStock: (id: string, qty: number) => void;
+  addService: (s: ServiceItem) => void;
+  addPurchase: (p: Purchase) => void;
+  
   resetData: () => void;
 }
 
@@ -31,13 +42,21 @@ const initialCustomers: Customer[] = [
 const initialProducts: Product[] = [
   { id: '1', name: 'Tela iPhone 13 Original', price: 1200, cost: 600, stock: 5, category: 'Peças' },
   { id: '2', name: 'Bateria Samsung S20', price: 350, cost: 150, stock: 10, category: 'Peças' },
-  { id: '3', name: 'Película de Vidro 3D', price: 50, cost: 5, stock: 100, category: 'Acessórios' },
-  { id: '4', name: 'Cabo USB-C Premium', price: 80, cost: 20, stock: 30, category: 'Acessórios' },
+];
+
+const initialSupplies: Supply[] = [
+  { id: '1', name: 'Cola B-7000', unit: 'un', cost: 15.00, stock: 20, minStock: 5 },
+  { id: '2', name: 'Álcool Isopropílico', unit: 'litro', cost: 45.00, stock: 2, minStock: 1 },
+];
+
+const initialServices: ServiceItem[] = [
+  { id: '1', name: 'Troca de Tela', price: 150.00, description: 'Mão de obra para troca de frontal' },
+  { id: '2', name: 'Banho Químico', price: 120.00, description: 'Desoxidação de placa lógica' },
 ];
 
 const initialOS: ServiceOrder[] = [
   { 
-    id: 'OS-001', 
+    id: 'OS-1001', 
     customerId: '1', 
     customerName: 'João Silva', 
     device: 'iPhone 13', 
@@ -45,10 +64,12 @@ const initialOS: ServiceOrder[] = [
     status: OSStatus.EM_ANDAMENTO, 
     priority: 'Alta', 
     createdAt: new Date().toISOString(), 
-    totalValue: 1200 
+    totalValue: 1350,
+    technicalNotes: 'Aguardando secagem da cola.',
+    services: [initialServices[0]]
   },
   { 
-    id: 'OS-002', 
+    id: 'OS-1002', 
     customerId: '2', 
     customerName: 'Maria Souza', 
     device: 'Notebook Dell', 
@@ -62,21 +83,9 @@ const initialOS: ServiceOrder[] = [
 
 const initialTransactions: Transaction[] = [
   { id: '1', description: 'Venda Balcão #101', amount: 150, type: TransactionType.INCOME, date: new Date().toISOString(), category: 'Vendas' },
-  { id: '2', description: 'Compra de Peças', amount: 450, type: TransactionType.EXPENSE, date: new Date().toISOString(), category: 'Fornecedor' },
 ];
 
-const initialSalesOrders: SalesOrder[] = [
-  {
-    id: 'ENC-001',
-    customerId: '2',
-    customerName: 'Maria Souza',
-    items: [{ id: '4', name: 'Cabo USB-C Premium', price: 80, cost: 20, stock: 30, category: 'Acessórios', quantity: 2 }],
-    total: 160,
-    status: OrderStatus.PENDING,
-    createdAt: new Date().toISOString(),
-    deliveryDate: new Date(Date.now() + 86400000 * 2).toISOString()
-  }
-];
+const initialSalesOrders: SalesOrder[] = [];
 
 const initialSettings: SystemSettings = {
   companyName: 'TechFix Pro',
@@ -85,15 +94,19 @@ const initialSettings: SystemSettings = {
   phone: '(11) 9999-9999',
   address: 'Rua das Tecnologias, 100, São Paulo - SP',
   enableNotifications: true,
-  enableSound: true
+  enableSound: true,
+  pixKey: '00.000.000/0001-00'
 };
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [supplies, setSupplies] = useState<Supply[]>(initialSupplies);
+  const [services, setServices] = useState<ServiceItem[]>(initialServices);
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>(initialOS);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>(initialSalesOrders);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [settings, setSettings] = useState<SystemSettings>(initialSettings);
 
   const addCustomer = (c: Customer) => setCustomers([...customers, c]);
@@ -125,13 +138,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSettings(prev => ({ ...prev, ...s }));
   };
 
+  // New Methods
+  const addSupply = (s: Supply) => setSupplies([...supplies, s]);
+  const updateSupplyStock = (id: string, qty: number) => {
+    setSupplies(prev => prev.map(s => s.id === id ? { ...s, stock: s.stock + qty } : s));
+  };
+  const addService = (s: ServiceItem) => setServices([...services, s]);
+  
+  const addPurchase = (p: Purchase) => {
+    setPurchases([p, ...purchases]);
+    // Increase stock
+    updateSupplyStock(p.supplyId, p.quantity);
+    // Add Expense Transaction
+    addTransaction({
+      id: `TR-BUY-${Date.now()}`,
+      description: `Compra: ${p.supplyName}`,
+      amount: p.totalCost,
+      type: TransactionType.EXPENSE,
+      date: p.date,
+      category: 'Insumos'
+    });
+  };
+
   const resetData = () => {
-    if (confirm("Tem certeza? Todos os dados adicionados serão perdidos e restaurados para o estado inicial.")) {
+    if (confirm("Tem certeza? Todos os dados adicionados serão perdidos.")) {
       setCustomers(initialCustomers);
       setProducts(initialProducts);
       setServiceOrders(initialOS);
       setTransactions(initialTransactions);
-      setSalesOrders(initialSalesOrders);
+      setSupplies(initialSupplies);
+      setServices(initialServices);
+      setPurchases([]);
       setSettings(initialSettings);
     }
   };
@@ -139,8 +176,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <DataContext.Provider value={{
       customers, products, serviceOrders, transactions, salesOrders, settings,
+      supplies, services, purchases,
       addCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, 
-      addSalesOrder, updateSalesOrder, updateSettings, resetData
+      addSalesOrder, updateSalesOrder, updateSettings, 
+      addSupply, updateSupplyStock, addService, addPurchase,
+      resetData
     }}>
       {children}
     </DataContext.Provider>
