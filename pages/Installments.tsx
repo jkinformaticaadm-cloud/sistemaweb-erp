@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { InstallmentPlan, Installment } from '../types';
-import { Search, Plus, Calendar, CheckCircle, AlertCircle, DollarSign, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
+import { Search, Plus, Calendar, CheckCircle, AlertCircle, DollarSign, ChevronDown, ChevronUp, Edit2, Smartphone, Banknote, RefreshCcw } from 'lucide-react';
 
 export const Installments: React.FC = () => {
   const { installmentPlans, customers, addInstallmentPlan, payInstallment, updateInstallmentValue } = useData();
@@ -18,10 +18,18 @@ export const Installments: React.FC = () => {
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [imei, setImei] = useState('');
+  
+  // Financial State
   const [totalValue, setTotalValue] = useState('');
   const [installmentsCount, setInstallmentsCount] = useState('3');
   const [frequency, setFrequency] = useState<'Semanal' | 'Mensal'>('Mensal');
   const [customFee, setCustomFee] = useState('0');
+  
+  // Down Payment & Trade In
+  const [downPayment, setDownPayment] = useState('');
+  const [hasTradeIn, setHasTradeIn] = useState(false);
+  const [tradeInName, setTradeInName] = useState('');
+  const [tradeInValue, setTradeInValue] = useState('');
 
   // Computed for Form
   const selectedCustomer = customers.find(c => c.id === customerId);
@@ -49,10 +57,17 @@ export const Installments: React.FC = () => {
   };
 
   const calculateFinancials = (plan: InstallmentPlan) => {
-    const total = plan.totalValue;
-    const paid = plan.installments.filter(i => i.status === 'Pago').reduce((acc, i) => acc + i.value, 0);
-    const remaining = plan.installments.filter(i => i.status !== 'Pago').reduce((acc, i) => acc + i.value, 0);
-    return { total, paid, remaining };
+    const total = plan.totalValue; // This is the total value of the PRODUCT, usually. But the logic below uses it as base.
+    // Let's assume totalValue in plan is the original Total Amount agreed upon (including interest) before splitting.
+    // Actually, let's use the sum of installments + downpayments to show "Total Paid" correctly?
+    
+    // Simple view:
+    const paidInstallments = plan.installments.filter(i => i.status === 'Pago').reduce((acc, i) => acc + i.value, 0);
+    const remainingInstallments = plan.installments.filter(i => i.status !== 'Pago').reduce((acc, i) => acc + i.value, 0);
+    
+    // We can display the Down Payment as "Already Paid" in a separate stat or include it.
+    // For simplicity in the list view:
+    return { paid: paidInstallments, remaining: remainingInstallments };
   };
 
   const handleCreatePlan = (e: React.FormEvent) => {
@@ -63,9 +78,19 @@ export const Installments: React.FC = () => {
     const count = parseInt(installmentsCount) || 1;
     const fee = parseFloat(customFee) || 0;
     
-    // Simple logic: Fee is added to total, then divided
-    const finalAmount = amount + fee;
-    const installmentValue = finalAmount / count;
+    const dPayment = parseFloat(downPayment) || 0;
+    const tInValue = hasTradeIn ? (parseFloat(tradeInValue) || 0) : 0;
+
+    // Calculation: (Total + Fee) - DownPayment - TradeIn = Financed Amount
+    const totalBase = amount + fee;
+    const financedAmount = Math.max(0, totalBase - dPayment - tInValue);
+    
+    if (financedAmount <= 0 && count > 0) {
+       alert('O valor financiado é zero ou negativo. Verifique os valores de entrada.');
+       return;
+    }
+
+    const installmentValue = financedAmount / count;
 
     const newInstallments: Installment[] = Array.from({ length: count }, (_, i) => {
        const date = new Date();
@@ -90,9 +115,11 @@ export const Installments: React.FC = () => {
        model,
        serialNumber,
        imei,
-       totalValue: finalAmount,
+       totalValue: totalBase,
        frequency,
        customFee: fee,
+       downPayment: dPayment,
+       tradeInProduct: hasTradeIn ? { name: tradeInName, value: tInValue } : undefined,
        createdAt: new Date().toISOString(),
        installments: newInstallments
     };
@@ -101,7 +128,8 @@ export const Installments: React.FC = () => {
     alert('Crediário criado com sucesso!');
     setActiveTab('list');
     // Reset form
-    setCustomerId(''); setProductName(''); setBrand(''); setModel(''); setSerialNumber(''); setImei(''); setTotalValue(''); setCustomFee('0');
+    setCustomerId(''); setProductName(''); setBrand(''); setModel(''); setSerialNumber(''); setImei(''); 
+    setTotalValue(''); setCustomFee('0'); setDownPayment(''); setHasTradeIn(false); setTradeInName(''); setTradeInValue('');
   };
 
   const handleEditValue = (planId: string, instNum: number, currentVal: number) => {
@@ -171,7 +199,7 @@ export const Installments: React.FC = () => {
 
                            <div className="flex items-center gap-6 mt-4 md:mt-0">
                               <div className="text-center">
-                                 <p className="text-xs text-gray-400 uppercase">Recebido</p>
+                                 <p className="text-xs text-gray-400 uppercase">Recebido (Parc.)</p>
                                  <p className="font-bold text-green-600">R$ {fin.paid.toFixed(2)}</p>
                               </div>
                               <div className="text-center">
@@ -187,7 +215,7 @@ export const Installments: React.FC = () => {
 
                         {isExpanded && (
                            <div className="bg-gray-50 border-t border-gray-100 p-6 animate-fade-in">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                                  <div>
                                     <h4 className="font-bold text-gray-700 mb-2 text-sm uppercase">Dados do Cliente</h4>
                                     <p className="text-sm text-gray-600">{plan.customerAddress}</p>
@@ -195,8 +223,22 @@ export const Installments: React.FC = () => {
                                  <div>
                                     <h4 className="font-bold text-gray-700 mb-2 text-sm uppercase">Dados do Produto</h4>
                                     <p className="text-sm text-gray-600">
-                                       <strong>Marca:</strong> {plan.brand} | <strong>Serial:</strong> {plan.serialNumber || '-'} | <strong>IMEI:</strong> {plan.imei || '-'}
+                                       <strong>Marca:</strong> {plan.brand} | <strong>Serial:</strong> {plan.serialNumber || '-'} <br/>
+                                       <strong>IMEI:</strong> {plan.imei || '-'}
                                     </p>
+                                 </div>
+                                 <div>
+                                     <h4 className="font-bold text-gray-700 mb-2 text-sm uppercase">Entradas / Trocas</h4>
+                                     <div className="text-sm text-gray-600">
+                                       <p className="flex justify-between"><span>Entrada ($):</span> <span className="font-medium text-green-600">R$ {(plan.downPayment || 0).toFixed(2)}</span></p>
+                                       {plan.tradeInProduct && (
+                                         <p className="flex justify-between mt-1 pt-1 border-t border-gray-200">
+                                            <span className="truncate max-w-[120px]" title={plan.tradeInProduct.name}>{plan.tradeInProduct.name}</span> 
+                                            <span className="font-medium text-green-600">R$ {plan.tradeInProduct.value.toFixed(2)}</span>
+                                         </p>
+                                       )}
+                                       {!plan.downPayment && !plan.tradeInProduct && <p className="text-gray-400 italic">Sem entrada.</p>}
+                                     </div>
                                  </div>
                               </div>
 
@@ -294,7 +336,7 @@ export const Installments: React.FC = () => {
 
                {/* Section 2: Product */}
                <div>
-                  <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2"><DollarSign size={18}/> Dados do Produto</h3>
+                  <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2"><Smartphone size={18}/> Dados do Produto</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                      <div className="md:col-span-1">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Produto</label>
@@ -321,8 +363,10 @@ export const Installments: React.FC = () => {
 
                {/* Section 3: Financial */}
                <div>
-                  <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2"><Calendar size={18}/> Condições de Pagamento</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-xl border border-gray-100">
+                  <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2"><DollarSign size={18}/> Condições de Pagamento</h3>
+                  
+                  {/* Financial Values Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-xl border border-gray-100 mb-4">
                      <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Valor Total (R$)</label>
                         <input required type="number" className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold" value={totalValue} onChange={e => setTotalValue(e.target.value)} />
@@ -334,7 +378,7 @@ export const Installments: React.FC = () => {
                      <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Qtd Parcelas</label>
                         <select className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white" value={installmentsCount} onChange={e => setInstallmentsCount(e.target.value)}>
-                           {[1,2,3,4,5,6,10,12].map(n => <option key={n} value={n}>{n}x</option>)}
+                           {[1,2,3,4,5,6,10,12,18,24].map(n => <option key={n} value={n}>{n}x</option>)}
                         </select>
                      </div>
                      <div>
@@ -345,8 +389,85 @@ export const Installments: React.FC = () => {
                         </select>
                      </div>
                   </div>
-                  <div className="mt-4 text-right text-sm text-gray-600">
-                     Simulação: <strong>{installmentsCount}x</strong> de <strong>R$ {((parseFloat(totalValue || '0') + parseFloat(customFee || '0')) / (parseInt(installmentsCount) || 1)).toFixed(2)}</strong>
+
+                  {/* Down Payment & Trade-In Section */}
+                  <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
+                     <h4 className="font-bold text-blue-800 mb-3 text-sm uppercase flex items-center gap-2">
+                        <Banknote size={16}/> Entrada / Troca
+                     </h4>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                           <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Valor de Entrada (Dinheiro/Pix)</label>
+                           <input 
+                              type="number" 
+                              className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white text-green-700 font-bold" 
+                              placeholder="0,00"
+                              value={downPayment} 
+                              onChange={e => setDownPayment(e.target.value)} 
+                           />
+                        </div>
+                        
+                        <div className="flex flex-col justify-end">
+                           <label className="flex items-center gap-2 cursor-pointer mb-2 bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm hover:border-blue-400">
+                              <input 
+                                 type="checkbox" 
+                                 className="w-4 h-4 text-blue-600 rounded"
+                                 checked={hasTradeIn}
+                                 onChange={e => setHasTradeIn(e.target.checked)}
+                              />
+                              <span className="font-medium text-gray-700 text-sm flex items-center gap-2">
+                                 <RefreshCcw size={16} className="text-gray-400"/>
+                                 Produto como Entrada
+                              </span>
+                           </label>
+                        </div>
+
+                        {hasTradeIn && (
+                           <>
+                              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
+                                 <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Produto (Troca)</label>
+                                    <input 
+                                       className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+                                       placeholder="Ex: iPhone 11 usado"
+                                       value={tradeInName} 
+                                       onChange={e => setTradeInName(e.target.value)} 
+                                    />
+                                 </div>
+                                 <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Valor Avaliado (R$)</label>
+                                    <input 
+                                       type="number"
+                                       className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white text-green-700 font-bold" 
+                                       placeholder="0,00"
+                                       value={tradeInValue} 
+                                       onChange={e => setTradeInValue(e.target.value)} 
+                                    />
+                                 </div>
+                              </div>
+                           </>
+                        )}
+                     </div>
+                  </div>
+
+                  {/* Summary / Simulation */}
+                  <div className="mt-4 p-4 bg-gray-800 text-white rounded-xl shadow-lg">
+                     <div className="flex justify-between items-center text-sm mb-2 opacity-80">
+                        <span>Total: R$ {(parseFloat(totalValue) || 0) + (parseFloat(customFee) || 0)}</span>
+                        <span>- Entrada: R$ {(parseFloat(downPayment) || 0)}</span>
+                        <span>- Troca: R$ {(hasTradeIn ? parseFloat(tradeInValue) || 0 : 0)}</span>
+                     </div>
+                     <div className="border-t border-gray-600 pt-3 flex justify-between items-end">
+                        <span className="text-sm font-medium uppercase text-gray-400">Parcelamento Final</span>
+                        <div className="text-right">
+                           <span className="text-2xl font-bold">{installmentsCount}x</span>
+                           <span className="text-lg mx-2">de</span>
+                           <span className="text-3xl font-bold text-green-400">
+                              R$ {(((parseFloat(totalValue) || 0) + (parseFloat(customFee) || 0) - (parseFloat(downPayment) || 0) - (hasTradeIn ? parseFloat(tradeInValue) || 0 : 0)) / (parseInt(installmentsCount) || 1)).toFixed(2)}
+                           </span>
+                        </div>
+                     </div>
                   </div>
                </div>
 

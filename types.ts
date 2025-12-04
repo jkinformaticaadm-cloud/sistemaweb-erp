@@ -184,4 +184,9 @@ export interface InstallmentPlan {
   frequency: 'Semanal' | 'Mensal';
   createdAt: string;
   customFee?: number; // Taxa personalizada aplicada
+  downPayment?: number; // Valor de entrada em dinheiro
+  tradeInProduct?: { // Produto dado como entrada
+    name: string;
+    value: number;
+  };
 }
