@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { Customer } from '../types';
-import { UserPlus, Search, Mail, Phone, MapPin } from 'lucide-react';
+import { UserPlus, Search, Mail, Phone, MapPin, Loader2 } from 'lucide-react';
 
 export const Customers: React.FC = () => {
   const { customers, addCustomer } = useData();
@@ -12,21 +12,46 @@ export const Customers: React.FC = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [cep, setCep] = useState('');
   const [address, setAddress] = useState('');
+  const [isLoadingCep, setIsLoadingCep] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newCustomer: Customer = {
       id: Date.now().toString(),
       name,
-      phone,
+      phone, // WhatsApp
       email,
       address
     };
     addCustomer(newCustomer);
     setShowForm(false);
     // Reset
-    setName(''); setPhone(''); setEmail(''); setAddress('');
+    setName(''); setPhone(''); setEmail(''); setCep(''); setAddress('');
+  };
+
+  const handleCepBlur = async () => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+
+    setIsLoadingCep(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await response.json();
+      
+      if (!data.erro) {
+        // Formata o endereço automaticamente
+        setAddress(`${data.logradouro}, ${data.bairro} - ${data.localidade}/${data.uf}`);
+      } else {
+        alert('CEP não encontrado!');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar CEP:', error);
+      alert('Erro ao buscar CEP. Verifique sua conexão.');
+    } finally {
+      setIsLoadingCep(false);
+    }
   };
 
   const filtered = customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -47,29 +72,73 @@ export const Customers: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 animate-fade-in">
           <h2 className="text-lg font-semibold mb-4 text-gray-700">Cadastrar Cliente</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input 
-              required placeholder="Nome Completo" 
-              className="border p-2 rounded-lg outline-none focus:ring-2 focus:ring-accent"
-              value={name} onChange={e => setName(e.target.value)}
-            />
-            <input 
-              required placeholder="Telefone" 
-              className="border p-2 rounded-lg outline-none focus:ring-2 focus:ring-accent"
-              value={phone} onChange={e => setPhone(e.target.value)}
-            />
-            <input 
-              required placeholder="Email" type="email"
-              className="border p-2 rounded-lg outline-none focus:ring-2 focus:ring-accent"
-              value={email} onChange={e => setEmail(e.target.value)}
-            />
-            <input 
-              required placeholder="Endereço" 
-              className="border p-2 rounded-lg outline-none focus:ring-2 focus:ring-accent"
-              value={address} onChange={e => setAddress(e.target.value)}
-            />
-            <div className="md:col-span-2 flex justify-end gap-2">
+            
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Nome Completo</label>
+              <input 
+                required 
+                placeholder="Ex: João Silva" 
+                className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-accent"
+                value={name} 
+                onChange={e => setName(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">WhatsApp / Telefone</label>
+              <input 
+                required 
+                placeholder="(00) 00000-0000" 
+                className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-accent"
+                value={phone} 
+                onChange={e => setPhone(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+              <input 
+                placeholder="cliente@email.com" 
+                type="email"
+                className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-accent"
+                value={email} 
+                onChange={e => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">CEP (Busca Automática)</label>
+              <div className="relative">
+                <input 
+                  placeholder="00000-000" 
+                  className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-accent"
+                  value={cep} 
+                  onChange={e => setCep(e.target.value)}
+                  onBlur={handleCepBlur}
+                  maxLength={9}
+                />
+                {isLoadingCep && (
+                  <div className="absolute right-3 top-2.5 text-accent animate-spin">
+                    <Loader2 size={20} />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Endereço Completo</label>
+              <input 
+                required 
+                placeholder="Rua, Número, Bairro - Cidade/UF" 
+                className="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-accent"
+                value={address} 
+                onChange={e => setAddress(e.target.value)}
+              />
+            </div>
+
+            <div className="md:col-span-2 flex justify-end gap-2 mt-2">
               <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-              <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">Salvar</button>
+              <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium">Salvar Cliente</button>
             </div>
           </form>
         </div>
@@ -100,13 +169,15 @@ export const Customers: React.FC = () => {
             </div>
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex items-center gap-2">
-                <Phone size={16} className="text-gray-400" /> {customer.phone}
+                <Phone size={16} className="text-green-600" /> <span className="font-medium">{customer.phone}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Mail size={16} className="text-gray-400" /> {customer.email}
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin size={16} className="text-gray-400" /> {customer.address}
+              {customer.email && (
+                <div className="flex items-center gap-2">
+                  <Mail size={16} className="text-gray-400" /> {customer.email}
+                </div>
+              )}
+              <div className="flex items-start gap-2">
+                <MapPin size={16} className="text-gray-400 mt-0.5" /> <span className="flex-1">{customer.address}</span>
               </div>
             </div>
           </div>
