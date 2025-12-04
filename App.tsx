@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
@@ -8,6 +9,7 @@ import { Customers } from './pages/Customers';
 import { Products } from './pages/Products';
 import { Financial } from './pages/Financial';
 import { Settings } from './pages/Settings';
+import { Installments } from './pages/Installments';
 import { DataProvider } from './context/DataContext';
 import { Bell, User } from 'lucide-react';
 
@@ -46,6 +48,7 @@ const App: React.FC = () => {
                 <Route path="/os" element={<ServiceOrders />} />
                 <Route path="/clientes" element={<Customers />} />
                 <Route path="/produtos" element={<Products />} />
+                <Route path="/crediario" element={<Installments />} />
                 <Route path="/financeiro" element={<Financial />} />
                 <Route path="/configuracoes" element={<Settings />} />
               </Routes>

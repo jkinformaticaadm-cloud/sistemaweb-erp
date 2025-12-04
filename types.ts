@@ -156,3 +156,32 @@ export interface SystemSettings {
   pixKey: string;
   paymentMachines: PaymentMachine[];
 }
+
+// --- Crediário Types ---
+
+export interface Installment {
+  number: number;
+  dueDate: string;
+  value: number;
+  status: 'Pendente' | 'Pago' | 'Atrasado';
+  paidAt?: string;
+}
+
+export interface InstallmentPlan {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerAddress: string;
+  // Product Details
+  productName: string;
+  brand: string;
+  model: string;
+  serialNumber?: string;
+  imei?: string;
+  // Financial
+  totalValue: number;
+  installments: Installment[];
+  frequency: 'Semanal' | 'Mensal';
+  createdAt: string;
+  customFee?: number; // Taxa personalizada aplicada
+}

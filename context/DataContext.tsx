@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem, Supply, ServiceItem, Purchase, PaymentMachine } from '../types';
+import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem, Supply, ServiceItem, Purchase, PaymentMachine, InstallmentPlan, Installment } from '../types';
 
 interface DataContextType {
   customers: Customer[];
@@ -12,6 +12,7 @@ interface DataContextType {
   supplies: Supply[];
   services: ServiceItem[];
   purchases: Purchase[];
+  installmentPlans: InstallmentPlan[];
   
   addCustomer: (c: Customer) => void;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
@@ -29,6 +30,11 @@ interface DataContextType {
   addService: (s: ServiceItem) => void;
   addPurchase: (p: Purchase) => void;
   
+  // Crediário
+  addInstallmentPlan: (plan: InstallmentPlan) => void;
+  payInstallment: (planId: string, installmentNumber: number) => void;
+  updateInstallmentValue: (planId: string, installmentNumber: number, newValue: number) => void;
+
   resetData: () => void;
 }
 
@@ -98,6 +104,29 @@ const initialTransactions: Transaction[] = [
 
 const initialSalesOrders: SalesOrder[] = [];
 
+// Crediário Mock
+const initialInstallmentPlans: InstallmentPlan[] = [
+   {
+      id: 'CRED-1001',
+      customerId: '1',
+      customerName: 'João Silva',
+      customerAddress: 'Rua das Flores, Bairro Jardim, 123',
+      productName: 'iPhone 13',
+      brand: 'Apple',
+      model: '128GB Midnight',
+      serialNumber: 'SN123456',
+      totalValue: 4000,
+      frequency: 'Mensal',
+      createdAt: new Date().toISOString(),
+      installments: [
+         { number: 1, value: 1000, dueDate: new Date().toISOString(), status: 'Pago', paidAt: new Date().toISOString() },
+         { number: 2, value: 1000, dueDate: new Date(Date.now() + 2592000000).toISOString(), status: 'Pendente' },
+         { number: 3, value: 1000, dueDate: new Date(Date.now() + 5184000000).toISOString(), status: 'Pendente' },
+         { number: 4, value: 1000, dueDate: new Date(Date.now() + 7776000000).toISOString(), status: 'Pendente' },
+      ]
+   }
+];
+
 // Default Machine Data
 const defaultMachine: PaymentMachine = {
   id: 'machine-1',
@@ -127,6 +156,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>(initialSalesOrders);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [installmentPlans, setInstallmentPlans] = useState<InstallmentPlan[]>(initialInstallmentPlans);
   const [settings, setSettings] = useState<SystemSettings>(initialSettings);
 
   const addCustomer = (c: Customer) => setCustomers([...customers, c]);
@@ -158,10 +188,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                date: new Date().toISOString(),
                category: 'Serviços de Assistência'
              };
-             // Use the functional update from setTransactions directly or the wrapper
-             // Since we are inside the map, we need to be careful with state updates.
-             // We'll call addTransaction outside. But wait, we can't easily.
-             // Best to use a timeout or just call the state setter.
              setTimeout(() => {
                 setTransactions(curr => [newTransaction, ...curr]);
              }, 0);
@@ -211,6 +237,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  // --- Crediário Methods ---
+  const addInstallmentPlan = (plan: InstallmentPlan) => {
+    setInstallmentPlans([plan, ...installmentPlans]);
+  };
+
+  const payInstallment = (planId: string, installmentNumber: number) => {
+    setInstallmentPlans(prev => prev.map(plan => {
+      if (plan.id !== planId) return plan;
+
+      const updatedInstallments = plan.installments.map(inst => {
+        if (inst.number === installmentNumber && inst.status !== 'Pago') {
+           // Create Transaction
+           const newTransaction: Transaction = {
+             id: `TR-CRED-${plan.id}-${inst.number}`,
+             description: `Crediário ${plan.customerName} - Parc. ${inst.number}`,
+             amount: inst.value,
+             type: TransactionType.INCOME,
+             date: new Date().toISOString(),
+             category: 'Crediário'
+           };
+           // We need to use setTimeout to update transactions state to avoid race condition/render cycle issues here
+           setTimeout(() => setTransactions(curr => [newTransaction, ...curr]), 0);
+           
+           return { ...inst, status: 'Pago' as const, paidAt: new Date().toISOString() };
+        }
+        return inst;
+      });
+
+      return { ...plan, installments: updatedInstallments };
+    }));
+  };
+
+  const updateInstallmentValue = (planId: string, installmentNumber: number, newValue: number) => {
+     setInstallmentPlans(prev => prev.map(plan => {
+        if (plan.id !== planId) return plan;
+        return {
+           ...plan,
+           installments: plan.installments.map(inst => 
+              inst.number === installmentNumber ? { ...inst, value: newValue } : inst
+           )
+        };
+     }));
+  };
+
   const resetData = () => {
     if (confirm("Tem certeza? Todos os dados adicionados serão perdidos.")) {
       setCustomers(initialCustomers);
@@ -220,6 +290,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSupplies(initialSupplies);
       setServices(initialServices);
       setPurchases([]);
+      setInstallmentPlans(initialInstallmentPlans);
       setSettings(initialSettings);
     }
   };
@@ -227,10 +298,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <DataContext.Provider value={{
       customers, products, serviceOrders, transactions, salesOrders, settings,
-      supplies, services, purchases,
+      supplies, services, purchases, installmentPlans,
       addCustomer, updateCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, 
       addSalesOrder, updateSalesOrder, updateSettings, 
       addSupply, updateSupplyStock, addService, addPurchase,
+      addInstallmentPlan, payInstallment, updateInstallmentValue,
       resetData
     }}>
       {children}

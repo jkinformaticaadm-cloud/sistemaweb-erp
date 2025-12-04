@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Wrench, Users, Package, PieChart, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Wrench, Users, Package, PieChart, Settings, LogOut, BookOpen } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const links = [
@@ -9,6 +10,7 @@ export const Sidebar: React.FC = () => {
     { to: "/os", icon: <Wrench size={20} />, label: "Ordens de Serviço" },
     { to: "/clientes", icon: <Users size={20} />, label: "Clientes" },
     { to: "/produtos", icon: <Package size={20} />, label: "Produtos" },
+    { to: "/crediario", icon: <BookOpen size={20} />, label: "Crediário" },
     { to: "/financeiro", icon: <PieChart size={20} />, label: "Financeiro" },
     { to: "/configuracoes", icon: <Settings size={20} />, label: "Configurações" },
   ];
