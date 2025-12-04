@@ -3,15 +3,19 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { Customer } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Search, Mail, Phone, MapPin, Loader2, Edit, Printer, X, User, Wrench } from 'lucide-react';
+import { 
+  UserPlus, Search, Mail, Phone, MapPin, Loader2, Edit, Printer, X, User, Wrench, 
+  History, ShoppingBag, FileText, CreditCard, Calendar, CheckCircle, AlertCircle 
+} from 'lucide-react';
 
 export const Customers: React.FC = () => {
-  const { customers, addCustomer, updateCustomer } = useData();
+  const { customers, addCustomer, updateCustomer, serviceOrders, transactions, installmentPlans } = useData();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
   
   // Form state
   const [name, setName] = useState('');
@@ -140,6 +144,154 @@ export const Customers: React.FC = () => {
        </div>
     );
   };
+
+  const HistoryModal = () => {
+    if (!historyCustomer) return null;
+
+    const [activeTab, setActiveTab] = useState<'os' | 'sales' | 'crediario'>('os');
+
+    const customerOS = serviceOrders.filter(os => os.customerId === historyCustomer.id);
+    
+    // Match sales by name since ID isn't strictly on transaction
+    const customerSales = transactions.filter(t => 
+        t.type === 'Receita' && 
+        (t.category === 'Vendas' || t.category === 'Serviços de Assistência') &&
+        t.transactionDetails?.customerName === historyCustomer.name
+    );
+
+    const customerCrediario = installmentPlans.filter(p => p.customerId === historyCustomer.id);
+
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+             <div className="bg-gray-800 text-white p-4 flex justify-between items-center shrink-0">
+                <h2 className="font-bold flex items-center gap-2"><History size={20}/> Histórico do Cliente</h2>
+                <button onClick={() => setHistoryCustomer(null)} className="hover:text-gray-300"><X size={24}/></button>
+             </div>
+             
+             {/* Customer Header Info */}
+             <div className="p-6 bg-gray-50 border-b border-gray-100 shrink-0">
+                 <h1 className="text-2xl font-bold text-gray-800">{historyCustomer.name}</h1>
+                 <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
+                    <span className="flex items-center gap-1"><Phone size={14}/> {historyCustomer.phone}</span>
+                    {historyCustomer.email && <span className="flex items-center gap-1"><Mail size={14}/> {historyCustomer.email}</span>}
+                    <span className="flex items-center gap-1"><MapPin size={14}/> {historyCustomer.address}</span>
+                 </div>
+             </div>
+
+             {/* Tabs */}
+             <div className="flex border-b border-gray-200 bg-white shrink-0">
+                <button 
+                    onClick={() => setActiveTab('os')}
+                    className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2
+                    ${activeTab === 'os' ? 'border-blue-600 text-blue-600 bg-blue-50' : 'border-transparent text-gray-500 hover:bg-gray-50'}`}
+                >
+                    <Wrench size={16}/> Ordens de Serviço ({customerOS.length})
+                </button>
+                <button 
+                    onClick={() => setActiveTab('sales')}
+                    className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2
+                    ${activeTab === 'sales' ? 'border-green-600 text-green-600 bg-green-50' : 'border-transparent text-gray-500 hover:bg-gray-50'}`}
+                >
+                    <ShoppingBag size={16}/> Histórico de Compras ({customerSales.length})
+                </button>
+                <button 
+                    onClick={() => setActiveTab('crediario')}
+                    className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2
+                    ${activeTab === 'crediario' ? 'border-purple-600 text-purple-600 bg-purple-50' : 'border-transparent text-gray-500 hover:bg-gray-50'}`}
+                >
+                    <CreditCard size={16}/> Crediário ({customerCrediario.length})
+                </button>
+             </div>
+
+             {/* Content Area */}
+             <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+                
+                {/* OS CONTENT */}
+                {activeTab === 'os' && (
+                    <div className="space-y-4">
+                        {customerOS.length === 0 ? <p className="text-center text-gray-400 py-8">Nenhuma Ordem de Serviço encontrada.</p> : 
+                           customerOS.map(os => (
+                               <div key={os.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                                   <div className="flex justify-between items-start mb-2">
+                                       <div>
+                                           <span className="font-mono text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded font-bold">{os.id}</span>
+                                           <span className="text-xs text-gray-400 ml-2">{new Date(os.createdAt).toLocaleDateString()}</span>
+                                       </div>
+                                       <span className={`px-2 py-0.5 text-xs font-bold rounded uppercase ${os.status === 'Concluído' || os.status === 'Finalizado' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{os.status}</span>
+                                   </div>
+                                   <h3 className="font-bold text-gray-800">{os.device}</h3>
+                                   <p className="text-sm text-gray-600 mt-1">{os.description}</p>
+                                   <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+                                       <span className="text-xs text-gray-500">Técnico: Admin</span>
+                                       <span className="font-bold text-gray-800">R$ {os.totalValue.toFixed(2)}</span>
+                                   </div>
+                               </div>
+                           ))
+                        }
+                    </div>
+                )}
+
+                {/* SALES CONTENT */}
+                {activeTab === 'sales' && (
+                    <div className="space-y-4">
+                        {customerSales.length === 0 ? <p className="text-center text-gray-400 py-8">Nenhuma compra registrada.</p> :
+                            customerSales.map(sale => (
+                                <div key={sale.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar size={14} className="text-gray-400"/>
+                                            <span className="text-sm font-bold text-gray-700">{new Date(sale.date).toLocaleDateString()}</span>
+                                            <span className="text-xs text-gray-400">{new Date(sale.date).toLocaleTimeString()}</span>
+                                        </div>
+                                        <span className="font-bold text-green-600">R$ {sale.amount.toFixed(2)}</span>
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                        {sale.transactionDetails?.items?.map((item, idx) => (
+                                            <div key={idx} className="flex justify-between py-1 border-b border-gray-50 last:border-0">
+                                                <span>{item.quantity}x {item.name}</span>
+                                                <span className="text-gray-400">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                        {!sale.transactionDetails?.items && <p>{sale.description}</p>}
+                                    </div>
+                                </div>
+                            ))
+                        }
+                    </div>
+                )}
+
+                {/* CREDIARIO CONTENT */}
+                {activeTab === 'crediario' && (
+                     <div className="space-y-4">
+                        {customerCrediario.length === 0 ? <p className="text-center text-gray-400 py-8">Nenhum contrato de crediário.</p> :
+                            customerCrediario.map(plan => {
+                                const paid = plan.installments.filter(i => i.status === 'Pago').length;
+                                const total = plan.installments.length;
+                                return (
+                                    <div key={plan.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                                        <div className="flex justify-between mb-2">
+                                            <h3 className="font-bold text-gray-800">{plan.productName}</h3>
+                                            <span className="text-xs font-mono text-gray-500">{plan.id}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm text-gray-600 mb-2">
+                                            <span>Progresso: {paid}/{total} Parcelas</span>
+                                            <span className="font-bold text-blue-600">Total: R$ {plan.totalValue.toFixed(2)}</span>
+                                        </div>
+                                        <div className="w-full bg-gray-100 rounded-full h-2">
+                                            <div className="bg-blue-600 h-2 rounded-full" style={{width: `${(paid/total)*100}%`}}></div>
+                                        </div>
+                                    </div>
+                                )
+                            })
+                        }
+                     </div>
+                )}
+             </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -306,6 +458,13 @@ export const Customers: React.FC = () => {
                         <td className="px-6 py-4">
                            <div className="flex justify-center gap-2">
                               <button 
+                                 onClick={() => setHistoryCustomer(customer)}
+                                 className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                 title="Ver Histórico"
+                              >
+                                 <History size={18}/>
+                              </button>
+                              <button 
                                  onClick={() => navigate(`/os?customerId=${customer.id}`)}
                                  className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                                  title="Gerar Ordem de Serviço"
@@ -314,7 +473,7 @@ export const Customers: React.FC = () => {
                               </button>
                               <button 
                                  onClick={() => openForm(customer)} 
-                                 className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                 className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                                  title="Editar"
                               >
                                  <Edit size={18}/>
@@ -337,6 +496,9 @@ export const Customers: React.FC = () => {
 
       {/* Print View Modal */}
       <PrintModal />
+
+      {/* History Modal */}
+      <HistoryModal />
       
       {/* Print Styles */}
       <style>{`
