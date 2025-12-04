@@ -1,6 +1,6 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { DollarSign, ClipboardList, AlertTriangle, Package } from 'lucide-react';
 import { TransactionType, OSStatus } from '../types';
 
@@ -22,7 +22,8 @@ export const Dashboard: React.FC = () => {
     { name: 'Concluídos', value: serviceOrders.filter(o => o.status === OSStatus.CONCLUIDO).length },
   ].filter(d => d.value > 0);
 
-  const COLORS = ['#FBBF24', '#3B82F6', '#10B981', '#EF4444'];
+  // Paleta de cores expandida para os dias da semana
+  const COLORS = ['#3B82F6', '#10B981', '#FBBF24', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1'];
 
   const last7Days = [...Array(7)].map((_, i) => {
     const d = new Date();
@@ -36,6 +37,8 @@ export const Dashboard: React.FC = () => {
       .reduce((acc, curr) => acc + curr.amount, 0);
     return { date: date.split('-').slice(1).join('/'), receita: dayTotal };
   });
+
+  const hasRevenue = revenueData.some(d => d.receita > 0);
 
   return (
     <div className="space-y-6">
@@ -87,17 +90,41 @@ export const Dashboard: React.FC = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-4 text-gray-700">Receita (Últimos 7 dias)</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="receita" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <h3 className="text-lg font-semibold mb-4 text-gray-700">Distribuição da Receita (7 dias)</h3>
+          <div className="h-64 flex justify-center">
+            {hasRevenue ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={revenueData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="receita"
+                    nameKey="date"
+                  >
+                    {revenueData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center text-gray-400">Sem vendas no período</div>
+            )}
+          </div>
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+             {revenueData.map((d, i) => (
+               d.receita > 0 && (
+                <div key={d.date} className="flex items-center text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                  <div className="w-2 h-2 rounded-full mr-2" style={{backgroundColor: COLORS[i % COLORS.length]}}></div>
+                  {d.date}: <span className="font-semibold ml-1">R$ {d.receita}</span>
+                </div>
+               )
+             ))}
           </div>
         </div>
 
@@ -128,7 +155,7 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center text-gray-400">Sem dados suficientes</div>
             )}
           </div>
-          <div className="flex justify-center gap-4 mt-2">
+          <div className="flex justify-center gap-4 mt-4">
              {statusData.map((d, i) => (
                <div key={d.name} className="flex items-center text-xs text-gray-600">
                  <div className="w-3 h-3 rounded-full mr-1" style={{backgroundColor: COLORS[i % COLORS.length]}}></div>
