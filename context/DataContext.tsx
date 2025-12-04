@@ -70,7 +70,10 @@ const initialOS: ServiceOrder[] = [
     totalValue: 1350,
     warranty: '90 Dias (Peça e Mão de obra)',
     technicalNotes: 'Aguardando secagem da cola.',
-    services: [initialServices[0]]
+    items: [
+      { id: '1', name: 'Troca de Tela', quantity: 1, unitPrice: 150, total: 150, type: 'service' },
+      { id: 'p1', name: 'Tela iPhone 13 Original', quantity: 1, unitPrice: 1200, total: 1200, type: 'product' }
+    ]
   },
   { 
     id: 'OS-1002', 
@@ -84,7 +87,8 @@ const initialOS: ServiceOrder[] = [
     priority: 'Média', 
     createdAt: new Date(Date.now() - 86400000).toISOString(), 
     totalValue: 0,
-    warranty: '30 Dias (Diagnóstico)'
+    warranty: '30 Dias (Diagnóstico)',
+    items: []
   }
 ];
 
@@ -137,11 +141,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setServiceOrders([os, ...serviceOrders]);
   };
 
-  const updateServiceOrder = (id: string, updates: Partial<ServiceOrder>) => {
-    setServiceOrders(prev => prev.map(os => os.id === id ? { ...os, ...updates } : os));
-  };
+  const addTransaction = (t: Transaction) => setTransactions(prev => [t, ...prev]);
 
-  const addTransaction = (t: Transaction) => setTransactions([t, ...transactions]);
+  const updateServiceOrder = (id: string, updates: Partial<ServiceOrder>) => {
+    setServiceOrders(prev => prev.map(os => {
+      if (os.id === id) {
+        // If status changing to FINALIZADO, create income transaction
+        if (updates.status === OSStatus.FINALIZADO && os.status !== OSStatus.FINALIZADO) {
+           const finalTotal = updates.totalValue !== undefined ? updates.totalValue : os.totalValue;
+           if (finalTotal > 0) {
+             const newTransaction: Transaction = {
+               id: `TR-OS-${os.id}-${Date.now()}`,
+               description: `Faturamento OS #${os.id} - ${os.customerName}`,
+               amount: finalTotal,
+               type: TransactionType.INCOME,
+               date: new Date().toISOString(),
+               category: 'Serviços de Assistência'
+             };
+             // Use the functional update from setTransactions directly or the wrapper
+             // Since we are inside the map, we need to be careful with state updates.
+             // We'll call addTransaction outside. But wait, we can't easily.
+             // Best to use a timeout or just call the state setter.
+             setTimeout(() => {
+                setTransactions(curr => [newTransaction, ...curr]);
+             }, 0);
+           }
+        }
+        return { ...os, ...updates };
+      }
+      return os;
+    }));
+  };
 
   const updateStock = (productId: string, quantity: number) => {
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: p.stock - quantity } : p));

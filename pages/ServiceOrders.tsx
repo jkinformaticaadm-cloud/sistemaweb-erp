@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, TransactionType } from '../types';
+import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, TransactionType, OSItem } from '../types';
 import { 
   Plus, Search, BrainCircuit, CheckCircle, Clock, FileText, X, 
   Calendar, BarChart3, Wrench, Package, ShoppingCart, Filter, QrCode, 
-  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User
+  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2
 } from 'lucide-react';
 import { analyzeTechnicalIssue } from '../services/geminiService';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
@@ -15,7 +15,7 @@ type OSTab = 'dashboard' | 'list' | 'supplies' | 'services' | 'purchases';
 
 export const ServiceOrders: React.FC = () => {
   const { 
-    serviceOrders, customers, supplies, services, purchases, transactions, settings,
+    serviceOrders, customers, supplies, services, products, purchases, transactions, settings,
     addServiceOrder, updateServiceOrder, addSupply, addService, addPurchase 
   } = useData();
   
@@ -23,6 +23,7 @@ export const ServiceOrders: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [printingOS, setPrintingOS] = useState<ServiceOrder | null>(null);
+  const [editingOS, setEditingOS] = useState<ServiceOrder | null>(null);
   
   // URL Params for quick actions
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,6 +37,7 @@ export const ServiceOrders: React.FC = () => {
 
   const handleCloseModal = () => {
      setIsModalOpen(false);
+     setEditingOS(null);
      setSearchParams({}); // Clear query params to clean URL
   };
 
@@ -88,6 +90,9 @@ export const ServiceOrders: React.FC = () => {
   const OSPrintModal = () => {
     if (!printingOS) return null;
     const client = customers.find(c => c.id === printingOS.customerId);
+    
+    const productItems = printingOS.items.filter(i => i.type === 'product');
+    const serviceItems = printingOS.items.filter(i => i.type === 'service');
 
     return (
        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:p-0 print:bg-white print:static print:block">
@@ -124,6 +129,9 @@ export const ServiceOrders: React.FC = () => {
                        <h2 className="text-3xl font-bold text-gray-800">ORDEM DE SERVIÇO</h2>
                        <p className="text-xl font-mono text-gray-600 mt-1">#{printingOS.id}</p>
                        <p className="text-sm text-gray-500 mt-2">Data: {new Date(printingOS.createdAt).toLocaleDateString()} {new Date(printingOS.createdAt).toLocaleTimeString()}</p>
+                       <p className={`text-sm font-bold uppercase mt-1 px-2 py-0.5 inline-block rounded border ${printingOS.status === OSStatus.CONCLUIDO || printingOS.status === OSStatus.FINALIZADO ? 'border-green-600 text-green-800' : 'border-gray-400 text-gray-600'}`}>
+                          {printingOS.status}
+                       </p>
                     </div>
                  </div>
 
@@ -170,28 +178,75 @@ export const ServiceOrders: React.FC = () => {
                     )}
                  </div>
 
-                 {/* 4. Financials */}
+                 {/* 4. Products & Services Details */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     {/* Products */}
+                     <div className="border border-gray-300 rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Peças / Produtos</div>
+                        <div className="p-0">
+                           {productItems.length > 0 ? (
+                              <table className="w-full text-xs">
+                                 <thead>
+                                    <tr className="border-b border-gray-100 text-gray-400">
+                                       <th className="p-2 text-left">Item</th>
+                                       <th className="p-2 text-center">Qtd</th>
+                                       <th className="p-2 text-right">Valor</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {productItems.map((item, idx) => (
+                                       <tr key={idx} className="border-b border-gray-50 last:border-0">
+                                          <td className="p-2">{item.name}</td>
+                                          <td className="p-2 text-center">{item.quantity}</td>
+                                          <td className="p-2 text-right">R$ {item.total.toFixed(2)}</td>
+                                       </tr>
+                                    ))}
+                                 </tbody>
+                              </table>
+                           ) : <p className="p-4 text-center text-gray-400 text-xs">Nenhuma peça utilizada.</p>}
+                        </div>
+                     </div>
+
+                     {/* Services */}
+                     <div className="border border-gray-300 rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Serviços Executados</div>
+                        <div className="p-0">
+                           {serviceItems.length > 0 ? (
+                              <table className="w-full text-xs">
+                                 <thead>
+                                    <tr className="border-b border-gray-100 text-gray-400">
+                                       <th className="p-2 text-left">Serviço</th>
+                                       <th className="p-2 text-right">Valor</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {serviceItems.map((item, idx) => (
+                                       <tr key={idx} className="border-b border-gray-50 last:border-0">
+                                          <td className="p-2">{item.name}</td>
+                                          <td className="p-2 text-right">R$ {item.total.toFixed(2)}</td>
+                                       </tr>
+                                    ))}
+                                 </tbody>
+                              </table>
+                           ) : <p className="p-4 text-center text-gray-400 text-xs">Nenhum serviço registrado.</p>}
+                        </div>
+                     </div>
+                 </div>
+
+                 {/* 5. Financials */}
                  <div className="flex justify-end">
                     <div className="w-1/2 border border-gray-300 rounded-lg overflow-hidden">
-                       <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Resumo de Valores</div>
+                       <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Resumo Financeiro</div>
                        <div className="p-4 space-y-2">
-                          <div className="flex justify-between text-sm">
-                             <span>Serviços / Mão de Obra</span>
-                             <span>-</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                             <span>Peças / Insumos</span>
-                             <span>-</span>
-                          </div>
-                          <div className="flex justify-between text-lg font-bold border-t border-gray-300 pt-2 mt-2">
-                             <span>Total Estimado</span>
+                          <div className="flex justify-between text-lg font-bold pt-2 mt-2 text-gray-900">
+                             <span>Total</span>
                              <span>R$ {printingOS.totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                           </div>
                        </div>
                     </div>
                  </div>
 
-                 {/* 5. Terms & Signature */}
+                 {/* 6. Terms & Signature */}
                  <div className="mt-8 pt-6 border-t-2 border-gray-800">
                     <p className="text-xs text-gray-500 text-justify mb-8">
                        <strong>Termos de Garantia:</strong> A garantia cobre apenas o serviço executado e as peças substituídas pelo prazo estipulado acima. Não cobrimos danos causados por mau uso, quedas, contato com líquidos ou intervenção de terceiros. Aparelhos não retirados em até 90 dias serão descartados ou vendidos para custear despesas (Lei 11.111).
@@ -210,14 +265,6 @@ export const ServiceOrders: React.FC = () => {
                        </div>
                     </div>
                  </div>
-
-                 {/* QR Code Section (Optional) */}
-                 {settings.pixKey && (
-                    <div className="absolute top-6 right-6 opacity-10 print:opacity-100 print:relative print:top-auto print:right-auto print:mt-8 print:text-center print:border print:border-dashed print:p-2">
-                       <p className="text-[10px] font-bold">Chave PIX: {settings.pixKey}</p>
-                    </div>
-                 )}
-
               </div>
           </div>
        </div>
@@ -338,6 +385,15 @@ export const ServiceOrders: React.FC = () => {
         os.id.includes(term)
      );
 
+     const handleStatusChange = (id: string, newStatus: OSStatus) => {
+        if (newStatus === OSStatus.FINALIZADO) {
+           if (!confirm('Ao finalizar, o valor total da OS será lançado no financeiro como receita. Deseja continuar?')) {
+              return;
+           }
+        }
+        updateServiceOrder(id, { status: newStatus });
+     };
+
      return (
         <div className="space-y-6 animate-fade-in">
            <div className="flex justify-between items-center">
@@ -361,14 +417,10 @@ export const ServiceOrders: React.FC = () => {
            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filtered.map(os => (
                <div key={os.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all group flex flex-col">
-                  <div className="p-5 flex-1">
+                  <div className="p-5 flex-1 cursor-pointer" onClick={() => { setEditingOS(os); setIsModalOpen(true); }}>
                      <div className="flex justify-between items-start mb-3">
                         <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{os.id}</span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                           ${os.status === OSStatus.CONCLUIDO ? 'bg-green-100 text-green-800' : 
-                           os.status === OSStatus.PENDENTE ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
-                           {os.status}
-                        </span>
+                        {/* Status is now a dropdown below, but keep a static badge here for quick view if needed, or remove. Let's remove and rely on bottom bar */}
                      </div>
                      <h3 className="font-bold text-lg text-gray-800 mb-1">{os.device}</h3>
                      <p className="text-gray-600 text-sm mb-4 flex items-center gap-1"><Users size={14}/> {os.customerName}</p>
@@ -377,30 +429,46 @@ export const ServiceOrders: React.FC = () => {
                         <p className="text-xs text-gray-500 uppercase tracking-wide mb-1 font-bold">Problema Relatado</p>
                         <p className="text-sm text-gray-700 line-clamp-2">{os.description}</p>
                      </div>
-                     {os.imei && <p className="text-xs text-gray-400 mb-1">IMEI: {os.imei}</p>}
+                     <div className="flex justify-between items-center">
+                        {os.imei && <p className="text-xs text-gray-400">IMEI: {os.imei}</p>}
+                        <p className="text-sm font-bold text-blue-600">R$ {os.totalValue.toFixed(2)}</p>
+                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50">
-                     <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Clock size={14}/> {new Date(os.createdAt).toLocaleDateString()}
-                     </div>
-                     <div className="flex gap-2">
-                        {os.status !== OSStatus.CONCLUIDO && (
-                           <button onClick={() => updateServiceOrder(os.id, {status: OSStatus.CONCLUIDO})} className="text-green-600 bg-white border border-green-200 hover:bg-green-50 p-1.5 rounded-lg transition-colors shadow-sm" title="Concluir">
-                              <CheckCircle size={18} />
+                  <div className="p-4 border-t border-gray-100 bg-gray-50 flex flex-col gap-3">
+                     <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-1 text-xs text-gray-500">
+                           <Clock size={14}/> {new Date(os.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="flex gap-2">
+                           <button 
+                              onClick={() => setPrintingOS(os)}
+                              className="text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 p-1.5 rounded-lg transition-colors shadow-sm" 
+                              title="Imprimir OS"
+                           >
+                              <Printer size={18} />
                            </button>
-                        )}
-                        <button 
-                           onClick={() => setPrintingOS(os)}
-                           className="text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 p-1.5 rounded-lg transition-colors shadow-sm" 
-                           title="Imprimir OS"
-                        >
-                           <Printer size={18} />
-                        </button>
-                        <button className="text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 p-1.5 rounded-lg transition-colors shadow-sm" title="Ver Detalhes">
-                           <QrCode size={18} />
-                        </button>
+                        </div>
                      </div>
+                     
+                     {/* Status Dropdown */}
+                     <select 
+                        value={os.status}
+                        onChange={(e) => handleStatusChange(os.id, e.target.value as OSStatus)}
+                        disabled={os.status === OSStatus.FINALIZADO}
+                        className={`w-full text-xs font-bold uppercase p-2 rounded border cursor-pointer outline-none transition-colors
+                           ${os.status === OSStatus.FINALIZADO ? 'bg-gray-200 text-gray-500 cursor-not-allowed border-gray-300' : 
+                             os.status === OSStatus.APROVADO ? 'bg-green-100 text-green-700 border-green-200' :
+                             os.status === OSStatus.NAO_APROVADO ? 'bg-red-100 text-red-700 border-red-200' :
+                             os.status === OSStatus.AGUARDANDO_PECAS ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                             os.status === OSStatus.CONCLUIDO ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                             'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                           }`}
+                     >
+                        {Object.values(OSStatus).map(status => (
+                           <option key={status} value={status}>{status}</option>
+                        ))}
+                     </select>
                   </div>
                </div>
             ))}
@@ -460,22 +528,47 @@ export const ServiceOrders: React.FC = () => {
   // --- Modals ---
 
   const NewOSModal = () => {
-     // State for form
-     const [formData, setFormData] = useState({
+     // Form State
+     const [formData, setFormData] = useState<Partial<ServiceOrder>>({
         customerId: paramCustomerId || '',
         device: '',
         imei: '',
         serialNumber: '',
         description: '',
-        priority: 'Média' as const,
-        value: 0,
+        priority: 'Média',
         warranty: '90 Dias (Peças e Mão de Obra)',
-        pixKey: settings.pixKey
+        status: OSStatus.PENDENTE,
+        items: []
      });
+
+     // Initialize if editing
+     useEffect(() => {
+        if (editingOS) {
+           setFormData({
+              ...editingOS
+           });
+           setAddedItems(editingOS.items || []);
+        }
+     }, []);
+
      const [isAnalyzing, setIsAnalyzing] = useState(false);
      const [aiResult, setAiResult] = useState('');
+     
+     // Item Addition State
+     const [addedItems, setAddedItems] = useState<OSItem[]>([]);
+     
+     // Product Inputs
+     const [selectedProductId, setSelectedProductId] = useState('');
+     const [productQty, setProductQty] = useState(1);
+     const [productPrice, setProductPrice] = useState(0);
+
+     // Service Inputs
+     const [selectedServiceId, setSelectedServiceId] = useState('');
+     const [serviceDescription, setServiceDescription] = useState('');
+     const [servicePrice, setServicePrice] = useState(0);
 
      const selectedCustomer = customers.find(c => c.id === formData.customerId);
+     const totalValue = addedItems.reduce((acc, item) => acc + item.total, 0);
 
      const handleAI = async () => {
         if (!formData.device || !formData.description) return;
@@ -485,52 +578,108 @@ export const ServiceOrders: React.FC = () => {
         setIsAnalyzing(false);
      };
 
+     // Helper to add item
+     const addItem = (item: OSItem) => {
+        setAddedItems([...addedItems, item]);
+     };
+
+     const removeItem = (index: number) => {
+        const newItems = [...addedItems];
+        newItems.splice(index, 1);
+        setAddedItems(newItems);
+     };
+
+     // Add Product Logic
+     const handleAddProduct = () => {
+        const prod = products.find(p => p.id === selectedProductId);
+        if (prod) {
+           addItem({
+              id: prod.id,
+              name: prod.name,
+              quantity: productQty,
+              unitPrice: productPrice,
+              total: productPrice * productQty,
+              type: 'product'
+           });
+           setSelectedProductId('');
+           setProductQty(1);
+           setProductPrice(0);
+        }
+     };
+
+     // Add Service Logic
+     const handleAddService = () => {
+        const svc = services.find(s => s.id === selectedServiceId);
+        const name = svc ? svc.name : serviceDescription;
+        
+        if (name && servicePrice > 0) {
+           addItem({
+              id: svc ? svc.id : `custom-${Date.now()}`,
+              name: name,
+              quantity: 1,
+              unitPrice: servicePrice,
+              total: servicePrice,
+              type: 'service'
+           });
+           setSelectedServiceId('');
+           setServiceDescription('');
+           setServicePrice(0);
+        }
+     };
+
      const submit = (e: React.FormEvent) => {
         e.preventDefault();
         const customer = customers.find(c => c.id === formData.customerId);
         if (!customer) return;
 
-        addServiceOrder({
-           id: `OS-${Date.now().toString().slice(-4)}`,
+        const osData: ServiceOrder = {
+           id: editingOS ? editingOS.id : `OS-${Date.now().toString().slice(-4)}`,
            customerId: customer.id,
            customerName: customer.name,
-           device: formData.device,
+           device: formData.device || '',
            imei: formData.imei,
            serialNumber: formData.serialNumber,
-           description: formData.description,
-           status: OSStatus.PENDENTE,
-           priority: formData.priority,
-           createdAt: new Date().toISOString(),
-           totalValue: formData.value,
+           description: formData.description || '',
+           status: formData.status || OSStatus.PENDENTE,
+           priority: formData.priority as any,
+           createdAt: editingOS ? editingOS.createdAt : new Date().toISOString(),
+           totalValue: totalValue,
            warranty: formData.warranty,
-           aiDiagnosis: aiResult,
-           pixKey: formData.pixKey
-        });
+           aiDiagnosis: aiResult || formData.aiDiagnosis,
+           items: addedItems
+        };
+
+        if (editingOS) {
+           updateServiceOrder(editingOS.id, osData);
+        } else {
+           addServiceOrder(osData);
+        }
         handleCloseModal();
      };
 
      return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-         <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10 shadow-sm">
-               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><FileText className="text-blue-600"/> Nova Ordem de Serviço</h2>
+         <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-y-auto flex flex-col">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10 shadow-sm shrink-0">
+               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <FileText className="text-blue-600"/> {editingOS ? `Editar OS #${editingOS.id}` : 'Nova Ordem de Serviço'}
+               </h2>
                <button onClick={handleCloseModal}><X className="text-gray-400 hover:text-gray-600"/></button>
             </div>
             
-            <form onSubmit={submit} className="p-6 space-y-6">
+            <form onSubmit={submit} className="p-6 space-y-6 flex-1 overflow-y-auto">
                
                {/* Section 1: Client & Priority */}
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-2">
                      <label className="label">Cliente</label>
-                     <select required className="input" value={formData.customerId} onChange={e => setFormData({...formData, customerId: e.target.value})}>
+                     <select required className="input" value={formData.customerId} onChange={e => setFormData({...formData, customerId: e.target.value})} disabled={!!editingOS}>
                         <option value="">Selecione o cliente...</option>
                         {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                      </select>
                      {selectedCustomer && (
-                        <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-800">
-                           <p><strong>Tel:</strong> {selectedCustomer.phone} | <strong>CPF:</strong> {selectedCustomer.cpfOrCnpj || 'N/A'}</p>
-                           <p className="truncate"><strong>End:</strong> {selectedCustomer.address}, {selectedCustomer.addressNumber}</p>
+                        <div className="mt-2 text-xs text-gray-500">
+                           {selectedCustomer.phone} • {selectedCustomer.cpfOrCnpj}
                         </div>
                      )}
                   </div>
@@ -549,7 +698,7 @@ export const ServiceOrders: React.FC = () => {
                   <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">Dados do Equipamento</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                      <div>
-                        <label className="label">Modelo do Aparelho</label>
+                        <label className="label">Modelo</label>
                         <input required className="input" placeholder="Ex: iPhone 11" value={formData.device} onChange={e => setFormData({...formData, device: e.target.value})}/>
                      </div>
                      <div>
@@ -563,51 +712,148 @@ export const ServiceOrders: React.FC = () => {
                   </div>
                </div>
 
-               <hr className="border-gray-100" />
-
                {/* Section 3: Issue */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="grid grid-cols-1 gap-6">
                   <div>
                      <label className="label">Descrição do Defeito</label>
-                     <textarea required className="input min-h-[120px]" placeholder="Relato do cliente..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}/>
+                     <textarea required className="input min-h-[80px]" placeholder="Relato do cliente..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}/>
                      
                      {/* AI Button */}
                      <div className="mt-2 flex justify-end">
                          <button type="button" onClick={handleAI} disabled={isAnalyzing || !formData.device || !formData.description} className="text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 disabled:opacity-50 transition-colors">
-                            <BrainCircuit size={14}/> {isAnalyzing ? 'Analisando...' : 'Gerar Diagnóstico IA'}
+                            <BrainCircuit size={14}/> {isAnalyzing ? 'Analisando...' : 'Diagnóstico IA'}
                          </button>
                      </div>
-                     {aiResult && (
+                     {(aiResult || formData.aiDiagnosis) && (
                         <div className="mt-2 bg-indigo-50 p-3 rounded-lg border border-indigo-100 text-xs text-indigo-800 whitespace-pre-wrap">
-                           {aiResult}
+                           {aiResult || formData.aiDiagnosis}
                         </div>
                      )}
                   </div>
+               </div>
+
+               <hr className="border-gray-100" />
+
+               {/* Section 4: Items (Products & Services) */}
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   
-                  <div className="space-y-4">
-                     <div>
-                        <label className="label">Orçamento Inicial Estimado (R$)</label>
-                        <input type="number" className="input font-bold" value={formData.value} onChange={e => setFormData({...formData, value: parseFloat(e.target.value) || 0})}/>
-                     </div>
-                     <div>
-                        <label className="label">Garantia</label>
-                        <select className="input" value={formData.warranty} onChange={e => setFormData({...formData, warranty: e.target.value})}>
-                           <option>Sem garantia</option>
-                           <option>30 Dias (Serviço)</option>
-                           <option>90 Dias (Peças e Mão de Obra)</option>
-                           <option>1 Ano (Fabricante)</option>
+                  {/* Add Products */}
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                     <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2"><Package size={18}/> Adicionar Peças / Produtos</h3>
+                     <div className="space-y-3">
+                        <select 
+                           className="input text-sm" 
+                           value={selectedProductId} 
+                           onChange={e => {
+                              setSelectedProductId(e.target.value);
+                              const p = products.find(prod => prod.id === e.target.value);
+                              if (p) setProductPrice(p.price);
+                           }}
+                        >
+                           <option value="">Selecione o Produto...</option>
+                           {products.map(p => <option key={p.id} value={p.id}>{p.name} (Est: {p.stock})</option>)}
                         </select>
+                        <div className="flex gap-2">
+                           <input type="number" className="input text-sm w-20" placeholder="Qtd" value={productQty} onChange={e => setProductQty(Number(e.target.value))}/>
+                           <input type="number" className="input text-sm" placeholder="Valor Unit." value={productPrice} onChange={e => setProductPrice(Number(e.target.value))}/>
+                           <button type="button" onClick={handleAddProduct} className="bg-green-600 text-white px-3 rounded-lg hover:bg-green-700"><Plus/></button>
+                        </div>
                      </div>
-                     <div>
-                        <label className="label">Chave PIX (Impressão)</label>
-                        <input className="input" value={formData.pixKey} onChange={e => setFormData({...formData, pixKey: e.target.value})} placeholder="Chave PIX"/>
+                  </div>
+
+                  {/* Add Services */}
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                     <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2"><Wrench size={18}/> Adicionar Serviços</h3>
+                     <div className="space-y-3">
+                        <select 
+                           className="input text-sm" 
+                           value={selectedServiceId} 
+                           onChange={e => {
+                              setSelectedServiceId(e.target.value);
+                              const s = services.find(svc => svc.id === e.target.value);
+                              if (s) {
+                                 setServicePrice(s.price);
+                                 setServiceDescription(s.name);
+                              } else {
+                                 setServiceDescription(''); // Custom
+                              }
+                           }}
+                        >
+                           <option value="">Serviço Cadastrado...</option>
+                           {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                           <option value="custom">Outro (Digitar)</option>
+                        </select>
+                        {selectedServiceId === 'custom' && (
+                           <input className="input text-sm" placeholder="Descrição do serviço" value={serviceDescription} onChange={e => setServiceDescription(e.target.value)}/>
+                        )}
+                        <div className="flex gap-2">
+                           <input type="number" className="input text-sm flex-1" placeholder="Valor do Serviço" value={servicePrice} onChange={e => setServicePrice(Number(e.target.value))}/>
+                           <button type="button" onClick={handleAddService} className="bg-blue-600 text-white px-3 rounded-lg hover:bg-blue-700"><Plus/></button>
+                        </div>
                      </div>
                   </div>
                </div>
 
-               <div className="flex justify-end pt-6 border-t border-gray-100 gap-3">
+               {/* Items Table */}
+               <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                     <thead className="bg-gray-100 text-gray-600 font-bold uppercase text-xs">
+                        <tr>
+                           <th className="p-3">Item</th>
+                           <th className="p-3 text-center">Tipo</th>
+                           <th className="p-3 text-center">Qtd</th>
+                           <th className="p-3 text-right">Unit.</th>
+                           <th className="p-3 text-right">Total</th>
+                           <th className="p-3 text-center">Excluir</th>
+                        </tr>
+                     </thead>
+                     <tbody className="divide-y divide-gray-100">
+                        {addedItems.length === 0 ? (
+                           <tr><td colSpan={6} className="p-6 text-center text-gray-400">Nenhum item adicionado à OS.</td></tr>
+                        ) : (
+                           addedItems.map((item, idx) => (
+                              <tr key={idx} className="hover:bg-gray-50">
+                                 <td className="p-3">{item.name}</td>
+                                 <td className="p-3 text-center text-xs">
+                                    <span className={`px-2 py-1 rounded ${item.type === 'product' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                                       {item.type === 'product' ? 'Peça' : 'Serviço'}
+                                    </span>
+                                 </td>
+                                 <td className="p-3 text-center">{item.quantity}</td>
+                                 <td className="p-3 text-right">R$ {item.unitPrice.toFixed(2)}</td>
+                                 <td className="p-3 text-right font-medium">R$ {item.total.toFixed(2)}</td>
+                                 <td className="p-3 text-center">
+                                    <button type="button" onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-600"><Trash2 size={16}/></button>
+                                 </td>
+                              </tr>
+                           ))
+                        )}
+                     </tbody>
+                     <tfoot className="bg-gray-50 font-bold text-gray-800">
+                        <tr>
+                           <td colSpan={4} className="p-3 text-right">VALOR TOTAL ESTIMADO:</td>
+                           <td className="p-3 text-right text-lg text-blue-700">R$ {totalValue.toFixed(2)}</td>
+                           <td></td>
+                        </tr>
+                     </tfoot>
+                  </table>
+               </div>
+
+               <div>
+                  <label className="label">Garantia</label>
+                  <select className="input" value={formData.warranty} onChange={e => setFormData({...formData, warranty: e.target.value})}>
+                     <option>Sem garantia</option>
+                     <option>30 Dias (Serviço)</option>
+                     <option>90 Dias (Peças e Mão de Obra)</option>
+                     <option>1 Ano (Fabricante)</option>
+                  </select>
+               </div>
+
+               <div className="flex justify-end pt-6 border-t border-gray-100 gap-3 shrink-0">
                   <button type="button" onClick={handleCloseModal} className="px-6 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100">Cancelar</button>
-                  <button type="submit" className="bg-blue-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md">Gerar OS</button>
+                  <button type="submit" className="bg-blue-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md">
+                     {editingOS ? 'Salvar Alterações' : 'Gerar OS'}
+                  </button>
                </div>
             </form>
          </div>

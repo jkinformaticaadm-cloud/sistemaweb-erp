@@ -3,9 +3,11 @@ export enum OSStatus {
   PENDENTE = 'Pendente',
   EM_ANALISE = 'Em Análise',
   APROVADO = 'Aprovado',
+  NAO_APROVADO = 'Não Aprovado',
+  AGUARDANDO_PECAS = 'Aguardando Peças',
   EM_ANDAMENTO = 'Em Andamento',
   CONCLUIDO = 'Concluído',
-  CANCELADO = 'Cancelado'
+  FINALIZADO = 'Finalizado'
 }
 
 export enum TransactionType {
@@ -26,9 +28,9 @@ export interface Customer {
   phone: string;
   email: string;
   address: string;
-  addressNumber?: string; // New field for residence number
+  addressNumber?: string;
   cep?: string;
-  cpfOrCnpj?: string; // Added for complete data
+  cpfOrCnpj?: string;
 }
 
 export interface Product {
@@ -66,13 +68,22 @@ export interface Purchase {
   supplier: string;
 }
 
+export interface OSItem {
+  id: string; // Product or Service ID
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  type: 'product' | 'service';
+}
+
 export interface ServiceOrder {
   id: string;
   customerId: string;
   customerName: string;
   device: string;
-  imei?: string; // New
-  serialNumber?: string; // New
+  imei?: string;
+  serialNumber?: string;
   description: string;
   aiDiagnosis?: string;
   status: OSStatus;
@@ -80,11 +91,10 @@ export interface ServiceOrder {
   createdAt: string;
   finishedAt?: string;
   totalValue: number;
-  warranty?: string; // New (e.g. "90 dias")
+  warranty?: string;
   technicalNotes?: string;
-  pixKey?: string; // For QR Code
-  services?: ServiceItem[]; // Services performed
-  supplies?: Supply[]; // Supplies used
+  items: OSItem[]; // Combined list of products and services
+  supplies?: Supply[]; // Internal supplies used (optional tracking)
 }
 
 export interface TransactionDetails {
@@ -143,6 +153,6 @@ export interface SystemSettings {
   address: string;
   enableNotifications: boolean;
   enableSound: boolean;
-  pixKey: string; // Default PIX Key
+  pixKey: string;
   paymentMachines: PaymentMachine[];
 }
