@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem, Supply, ServiceItem, Purchase } from '../types';
+import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem, Supply, ServiceItem, Purchase, PaymentMachine } from '../types';
 
 interface DataContextType {
   customers: Customer[];
@@ -87,6 +87,14 @@ const initialTransactions: Transaction[] = [
 
 const initialSalesOrders: SalesOrder[] = [];
 
+// Default Machine Data
+const defaultMachine: PaymentMachine = {
+  id: 'machine-1',
+  name: 'Máquina Padrão (Ex: Stone/Cielo)',
+  debitRate: 1.99,
+  creditRates: Array.from({ length: 18 }, (_, i) => ({ installments: i + 1, rate: 3.0 + (i * 1.5) }))
+};
+
 const initialSettings: SystemSettings = {
   companyName: 'TechFix Pro',
   cnpj: '00.000.000/0001-00',
@@ -95,7 +103,8 @@ const initialSettings: SystemSettings = {
   address: 'Rua das Tecnologias, 100, São Paulo - SP',
   enableNotifications: true,
   enableSound: true,
-  pixKey: '00.000.000/0001-00'
+  pixKey: '00.000.000/0001-00',
+  paymentMachines: [defaultMachine]
 };
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

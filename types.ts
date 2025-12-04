@@ -117,6 +117,18 @@ export interface SalesOrder {
   deliveryDate?: string;
 }
 
+export interface InstallmentRate {
+  installments: number; // 1 to 18
+  rate: number; // percentage
+}
+
+export interface PaymentMachine {
+  id: string;
+  name: string;
+  debitRate: number;
+  creditRates: InstallmentRate[]; // Array of rates for 1x to 18x
+}
+
 export interface SystemSettings {
   companyName: string;
   cnpj: string;
@@ -126,4 +138,5 @@ export interface SystemSettings {
   enableNotifications: boolean;
   enableSound: boolean;
   pixKey: string; // Default PIX Key
+  paymentMachines: PaymentMachine[];
 }
