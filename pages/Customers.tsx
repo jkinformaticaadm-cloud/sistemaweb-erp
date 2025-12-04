@@ -2,10 +2,12 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { Customer } from '../types';
-import { UserPlus, Search, Mail, Phone, MapPin, Loader2, Edit, Printer, X, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { UserPlus, Search, Mail, Phone, MapPin, Loader2, Edit, Printer, X, User, Wrench } from 'lucide-react';
 
 export const Customers: React.FC = () => {
   const { customers, addCustomer, updateCustomer } = useData();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -303,6 +305,13 @@ export const Customers: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                            <div className="flex justify-center gap-2">
+                              <button 
+                                 onClick={() => navigate(`/os?customerId=${customer.id}`)}
+                                 className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                 title="Gerar Ordem de Serviço"
+                              >
+                                 <Wrench size={18}/>
+                              </button>
                               <button 
                                  onClick={() => openForm(customer)} 
                                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, TransactionType } from '../types';
 import { 
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { analyzeTechnicalIssue } from '../services/geminiService';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { useSearchParams } from 'react-router-dom';
 
 type OSTab = 'dashboard' | 'list' | 'supplies' | 'services' | 'purchases';
 
@@ -21,6 +22,21 @@ export const ServiceOrders: React.FC = () => {
   const [activeTab, setActiveTab] = useState<OSTab>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  
+  // URL Params for quick actions
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paramCustomerId = searchParams.get('customerId');
+
+  useEffect(() => {
+     if (paramCustomerId) {
+        setIsModalOpen(true);
+     }
+  }, [paramCustomerId]);
+
+  const handleCloseModal = () => {
+     setIsModalOpen(false);
+     setSearchParams({}); // Clear query params to clean URL
+  };
 
   // --- Dashboard Data & Logic ---
   const dashboardStats = useMemo(() => {
@@ -313,7 +329,7 @@ export const ServiceOrders: React.FC = () => {
   const NewOSModal = () => {
      // State for form
      const [formData, setFormData] = useState({
-        customerId: '',
+        customerId: paramCustomerId || '',
         device: '',
         description: '',
         priority: 'Média' as const,
@@ -348,7 +364,7 @@ export const ServiceOrders: React.FC = () => {
            aiDiagnosis: aiResult,
            pixKey: formData.pixKey
         });
-        setIsModalOpen(false);
+        handleCloseModal();
      };
 
      return (
@@ -356,7 +372,7 @@ export const ServiceOrders: React.FC = () => {
          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
                <h2 className="text-xl font-bold text-gray-800">Nova Ordem de Serviço</h2>
-               <button onClick={() => setIsModalOpen(false)}><X className="text-gray-400 hover:text-gray-600"/></button>
+               <button onClick={handleCloseModal}><X className="text-gray-400 hover:text-gray-600"/></button>
             </div>
             <form onSubmit={submit} className="p-6 space-y-6">
                <div className="grid grid-cols-2 gap-4">
