@@ -10,6 +10,7 @@ export const Sidebar: React.FC = () => {
     { to: "/clientes", icon: <Users size={20} />, label: "Clientes" },
     { to: "/produtos", icon: <Package size={20} />, label: "Produtos" },
     { to: "/financeiro", icon: <PieChart size={20} />, label: "Financeiro" },
+    { to: "/configuracoes", icon: <Settings size={20} />, label: "Configurações" },
   ];
 
   return (

@@ -55,3 +55,13 @@ export interface Transaction {
 export interface CartItem extends Product {
   quantity: number;
 }
+
+export interface SystemSettings {
+  companyName: string;
+  cnpj: string;
+  phone: string;
+  email: string;
+  address: string;
+  enableNotifications: boolean;
+  enableSound: boolean;
+}

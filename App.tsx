@@ -7,6 +7,7 @@ import { Sales } from './pages/Sales';
 import { Customers } from './pages/Customers';
 import { Products } from './pages/Products';
 import { Financial } from './pages/Financial';
+import { Settings } from './pages/Settings';
 import { DataProvider } from './context/DataContext';
 import { Bell, User } from 'lucide-react';
 
@@ -46,6 +47,7 @@ const App: React.FC = () => {
                 <Route path="/clientes" element={<Customers />} />
                 <Route path="/produtos" element={<Products />} />
                 <Route path="/financeiro" element={<Financial />} />
+                <Route path="/configuracoes" element={<Settings />} />
               </Routes>
             </div>
           </main>

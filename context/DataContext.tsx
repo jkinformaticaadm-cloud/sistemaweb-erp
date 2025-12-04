@@ -1,17 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType } from '../types';
+import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings } from '../types';
 
 interface DataContextType {
   customers: Customer[];
   products: Product[];
   serviceOrders: ServiceOrder[];
   transactions: Transaction[];
+  settings: SystemSettings;
   addCustomer: (c: Customer) => void;
   addProduct: (p: Product) => void;
   addServiceOrder: (os: ServiceOrder) => void;
   updateServiceOrder: (id: string, updates: Partial<ServiceOrder>) => void;
   addTransaction: (t: Transaction) => void;
   updateStock: (productId: string, quantity: number) => void;
+  updateSettings: (s: Partial<SystemSettings>) => void;
+  resetData: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -59,11 +62,22 @@ const initialTransactions: Transaction[] = [
   { id: '2', description: 'Compra de Peças', amount: 450, type: TransactionType.EXPENSE, date: new Date().toISOString(), category: 'Fornecedor' },
 ];
 
+const initialSettings: SystemSettings = {
+  companyName: 'TechFix Pro',
+  cnpj: '00.000.000/0001-00',
+  email: 'contato@techfix.com',
+  phone: '(11) 9999-9999',
+  address: 'Rua das Tecnologias, 100, São Paulo - SP',
+  enableNotifications: true,
+  enableSound: true
+};
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>(initialOS);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [settings, setSettings] = useState<SystemSettings>(initialSettings);
 
   const addCustomer = (c: Customer) => setCustomers([...customers, c]);
   const addProduct = (p: Product) => setProducts([...products, p]);
@@ -82,10 +96,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: p.stock - quantity } : p));
   };
 
+  const updateSettings = (s: Partial<SystemSettings>) => {
+    setSettings(prev => ({ ...prev, ...s }));
+  };
+
+  const resetData = () => {
+    if (confirm("Tem certeza? Todos os dados adicionados serão perdidos e restaurados para o estado inicial.")) {
+      setCustomers(initialCustomers);
+      setProducts(initialProducts);
+      setServiceOrders(initialOS);
+      setTransactions(initialTransactions);
+      setSettings(initialSettings);
+    }
+  };
+
   return (
     <DataContext.Provider value={{
-      customers, products, serviceOrders, transactions,
-      addCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock
+      customers, products, serviceOrders, transactions, settings,
+      addCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, updateSettings, resetData
     }}>
       {children}
     </DataContext.Provider>
