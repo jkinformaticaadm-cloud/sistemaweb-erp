@@ -14,6 +14,7 @@ interface DataContextType {
   purchases: Purchase[];
   
   addCustomer: (c: Customer) => void;
+  updateCustomer: (id: string, c: Partial<Customer>) => void;
   addProduct: (p: Product) => void;
   addServiceOrder: (os: ServiceOrder) => void;
   updateServiceOrder: (id: string, updates: Partial<ServiceOrder>) => void;
@@ -35,8 +36,8 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 // Initial Mock Data
 const initialCustomers: Customer[] = [
-  { id: '1', name: 'João Silva', phone: '(11) 99999-9999', email: 'joao@email.com', address: 'Rua A, 123' },
-  { id: '2', name: 'Maria Souza', phone: '(11) 88888-8888', email: 'maria@email.com', address: 'Av B, 456' },
+  { id: '1', name: 'João Silva', phone: '(11) 99999-9999', email: 'joao@email.com', address: 'Rua das Flores, Bairro Jardim', addressNumber: '123', cep: '01001-000' },
+  { id: '2', name: 'Maria Souza', phone: '(11) 88888-8888', email: 'maria@email.com', address: 'Av Paulista, Centro', addressNumber: '1000', cep: '01310-100' },
 ];
 
 const initialProducts: Product[] = [
@@ -119,6 +120,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [settings, setSettings] = useState<SystemSettings>(initialSettings);
 
   const addCustomer = (c: Customer) => setCustomers([...customers, c]);
+  
+  const updateCustomer = (id: string, updates: Partial<Customer>) => {
+    setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
+
   const addProduct = (p: Product) => setProducts([...products, p]);
   
   const addServiceOrder = (os: ServiceOrder) => {
@@ -186,7 +192,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <DataContext.Provider value={{
       customers, products, serviceOrders, transactions, salesOrders, settings,
       supplies, services, purchases,
-      addCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, 
+      addCustomer, updateCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, 
       addSalesOrder, updateSalesOrder, updateSettings, 
       addSupply, updateSupplyStock, addService, addPurchase,
       resetData

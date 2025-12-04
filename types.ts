@@ -26,6 +26,8 @@ export interface Customer {
   phone: string;
   email: string;
   address: string;
+  addressNumber?: string; // New field for residence number
+  cep?: string;
 }
 
 export interface Product {
