@@ -28,6 +28,7 @@ export interface Customer {
   address: string;
   addressNumber?: string; // New field for residence number
   cep?: string;
+  cpfOrCnpj?: string; // Added for complete data
 }
 
 export interface Product {
@@ -70,6 +71,8 @@ export interface ServiceOrder {
   customerId: string;
   customerName: string;
   device: string;
+  imei?: string; // New
+  serialNumber?: string; // New
   description: string;
   aiDiagnosis?: string;
   status: OSStatus;
@@ -77,6 +80,7 @@ export interface ServiceOrder {
   createdAt: string;
   finishedAt?: string;
   totalValue: number;
+  warranty?: string; // New (e.g. "90 dias")
   technicalNotes?: string;
   pixKey?: string; // For QR Code
   services?: ServiceItem[]; // Services performed

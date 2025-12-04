@@ -5,7 +5,7 @@ import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, Transa
 import { 
   Plus, Search, BrainCircuit, CheckCircle, Clock, FileText, X, 
   Calendar, BarChart3, Wrench, Package, ShoppingCart, Filter, QrCode, 
-  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle
+  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User
 } from 'lucide-react';
 import { analyzeTechnicalIssue } from '../services/geminiService';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
@@ -22,6 +22,7 @@ export const ServiceOrders: React.FC = () => {
   const [activeTab, setActiveTab] = useState<OSTab>('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [printingOS, setPrintingOS] = useState<ServiceOrder | null>(null);
   
   // URL Params for quick actions
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,17 +39,19 @@ export const ServiceOrders: React.FC = () => {
      setSearchParams({}); // Clear query params to clean URL
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   // --- Dashboard Data & Logic ---
   const dashboardStats = useMemo(() => {
     const today = new Date().toDateString();
     
     // Financials from OS (Approximation based on 'finished' or just sum of all)
-    // In a real app, we would sum only paid OS. Here we sum all 'CONCLUIDO' or manually created Income transactions
     const revenue = transactions
-      .filter(t => t.type === TransactionType.INCOME && t.category !== 'Vendas') // Assuming 'Vendas' is PDV, other is OS
+      .filter(t => t.type === TransactionType.INCOME && t.category !== 'Vendas') 
       .reduce((acc, t) => acc + t.amount, 0);
       
-    // Expenses from Purchases
     const expenses = transactions
       .filter(t => t.type === TransactionType.EXPENSE)
       .reduce((acc, t) => acc + t.amount, 0);
@@ -66,14 +69,12 @@ export const ServiceOrders: React.FC = () => {
     };
   }, [serviceOrders, customers, supplies, services, transactions]);
 
-  // Simple Calendar Generation (Current Month)
   const calendarDays = useMemo(() => {
     const date = new Date();
     const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const days = [];
     for (let i = 1; i <= daysInMonth; i++) {
       const dayDate = new Date(date.getFullYear(), date.getMonth(), i);
-      // Find OS for this day
       const osCount = serviceOrders.filter(os => new Date(os.createdAt).toDateString() === dayDate.toDateString()).length;
       days.push({ day: i, date: dayDate, osCount });
     }
@@ -82,12 +83,149 @@ export const ServiceOrders: React.FC = () => {
 
   const monthName = new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
 
-
   // --- Render Components ---
+
+  const OSPrintModal = () => {
+    if (!printingOS) return null;
+    const client = customers.find(c => c.id === printingOS.customerId);
+
+    return (
+       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:p-0 print:bg-white print:static print:block">
+          <div className="bg-white w-full max-w-4xl min-h-[90vh] shadow-2xl overflow-y-auto print:shadow-none print:w-full print:h-auto print:overflow-visible">
+              
+              {/* Header Actions (Hidden on Print) */}
+              <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden sticky top-0 z-10">
+                 <h2 className="font-bold flex items-center gap-2"><Printer size={20}/> Visualização de Impressão</h2>
+                 <div className="flex gap-2">
+                    <button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2">
+                       <Printer size={18}/> Imprimir
+                    </button>
+                    <button onClick={() => setPrintingOS(null)} className="hover:text-gray-300"><X size={24}/></button>
+                 </div>
+              </div>
+
+              {/* Printable Content (A4 Style) */}
+              <div className="p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-0 print:text-xs">
+                 
+                 {/* 1. Header */}
+                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">
+                    <div className="flex items-center gap-4">
+                       <div className="w-16 h-16 bg-gray-800 text-white flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent">
+                          TF
+                       </div>
+                       <div>
+                          <h1 className="text-2xl font-bold uppercase">{settings.companyName}</h1>
+                          <p className="text-sm">CNPJ: {settings.cnpj}</p>
+                          <p className="text-sm">{settings.address}</p>
+                          <p className="text-sm">Tel: {settings.phone} | Email: {settings.email}</p>
+                       </div>
+                    </div>
+                    <div className="text-right">
+                       <h2 className="text-3xl font-bold text-gray-800">ORDEM DE SERVIÇO</h2>
+                       <p className="text-xl font-mono text-gray-600 mt-1">#{printingOS.id}</p>
+                       <p className="text-sm text-gray-500 mt-2">Data: {new Date(printingOS.createdAt).toLocaleDateString()} {new Date(printingOS.createdAt).toLocaleTimeString()}</p>
+                    </div>
+                 </div>
+
+                 {/* 2. Client & Device Grid */}
+                 <div className="grid grid-cols-2 gap-8">
+                    {/* Client Data */}
+                    <div className="border border-gray-300 rounded-lg p-4">
+                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                          <User size={16}/> Dados do Cliente
+                       </h3>
+                       <div className="space-y-1 text-sm">
+                          <p><span className="font-bold">Nome:</span> {client?.name || printingOS.customerName}</p>
+                          <p><span className="font-bold">CPF/CNPJ:</span> {client?.cpfOrCnpj || 'Não informado'}</p>
+                          <p><span className="font-bold">Telefone:</span> {client?.phone}</p>
+                          <p><span className="font-bold">Endereço:</span> {client?.address}, {client?.addressNumber}</p>
+                       </div>
+                    </div>
+
+                    {/* Device Data */}
+                    <div className="border border-gray-300 rounded-lg p-4">
+                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                          <Smartphone size={16}/> Dados do Aparelho
+                       </h3>
+                       <div className="space-y-1 text-sm">
+                          <p><span className="font-bold">Equipamento:</span> {printingOS.device}</p>
+                          <p><span className="font-bold">IMEI:</span> {printingOS.imei || '-'}</p>
+                          <p><span className="font-bold">Nº Série:</span> {printingOS.serialNumber || '-'}</p>
+                          <p><span className="font-bold">Garantia:</span> {printingOS.warranty || 'Consultar termos'}</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* 3. Defect / Diagnosis */}
+                 <div className="border border-gray-300 rounded-lg p-4">
+                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                       Relato do Defeito / Diagnóstico
+                    </h3>
+                    <p className="text-sm whitespace-pre-wrap min-h-[60px]">{printingOS.description}</p>
+                    {printingOS.technicalNotes && (
+                       <div className="mt-4 pt-4 border-t border-dashed border-gray-300">
+                          <p className="text-xs font-bold text-gray-500 uppercase mb-1">Observações Técnicas:</p>
+                          <p className="text-sm italic text-gray-600">{printingOS.technicalNotes}</p>
+                       </div>
+                    )}
+                 </div>
+
+                 {/* 4. Financials */}
+                 <div className="flex justify-end">
+                    <div className="w-1/2 border border-gray-300 rounded-lg overflow-hidden">
+                       <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Resumo de Valores</div>
+                       <div className="p-4 space-y-2">
+                          <div className="flex justify-between text-sm">
+                             <span>Serviços / Mão de Obra</span>
+                             <span>-</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                             <span>Peças / Insumos</span>
+                             <span>-</span>
+                          </div>
+                          <div className="flex justify-between text-lg font-bold border-t border-gray-300 pt-2 mt-2">
+                             <span>Total Estimado</span>
+                             <span>R$ {printingOS.totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* 5. Terms & Signature */}
+                 <div className="mt-8 pt-6 border-t-2 border-gray-800">
+                    <p className="text-xs text-gray-500 text-justify mb-8">
+                       <strong>Termos de Garantia:</strong> A garantia cobre apenas o serviço executado e as peças substituídas pelo prazo estipulado acima. Não cobrimos danos causados por mau uso, quedas, contato com líquidos ou intervenção de terceiros. Aparelhos não retirados em até 90 dias serão descartados ou vendidos para custear despesas (Lei 11.111).
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-16 mt-16">
+                       <div className="text-center">
+                          <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
+                          <p className="text-sm font-bold uppercase">{client?.name || 'Assinatura do Cliente'}</p>
+                          <p className="text-xs text-gray-500">CPF: {client?.cpfOrCnpj || '_________________'}</p>
+                       </div>
+                       <div className="text-center">
+                          <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
+                          <p className="text-sm font-bold uppercase">{settings.companyName}</p>
+                          <p className="text-xs text-gray-500">Técnico Responsável</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* QR Code Section (Optional) */}
+                 {settings.pixKey && (
+                    <div className="absolute top-6 right-6 opacity-10 print:opacity-100 print:relative print:top-auto print:right-auto print:mt-8 print:text-center print:border print:border-dashed print:p-2">
+                       <p className="text-[10px] font-bold">Chave PIX: {settings.pixKey}</p>
+                    </div>
+                 )}
+
+              </div>
+          </div>
+       </div>
+    );
+  };
 
   const DashboardTab = () => (
     <div className="space-y-6 animate-fade-in">
-      {/* Date Filter & Header */}
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-2">
            <BarChart3 className="text-gray-700" size={24}/>
@@ -186,19 +324,6 @@ export const ServiceOrders: React.FC = () => {
                      <span className="text-xs text-gray-400">Serviços</span>
                   </div>
                </div>
-
-               <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-white border border-gray-100 rounded-xl text-center">
-                     <TrendingUp className="mx-auto text-green-500 mb-1" size={20}/>
-                     <span className="block text-sm font-bold text-gray-800">0,00</span>
-                     <span className="text-[10px] text-gray-400">Receita do dia</span>
-                  </div>
-                  <div className="p-4 bg-white border border-gray-100 rounded-xl text-center">
-                     <TrendingDown className="mx-auto text-red-500 mb-1" size={20}/>
-                     <span className="block text-sm font-bold text-gray-800">0,00</span>
-                     <span className="text-[10px] text-gray-400">Despesas do dia</span>
-                  </div>
-               </div>
             </div>
          </div>
       </div>
@@ -235,39 +360,47 @@ export const ServiceOrders: React.FC = () => {
            
            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filtered.map(os => (
-               <div key={os.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all group">
-                  <div className="p-5">
-                  <div className="flex justify-between items-start mb-3">
-                     <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{os.id}</span>
-                     <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                        ${os.status === OSStatus.CONCLUIDO ? 'bg-green-100 text-green-800' : 
-                          os.status === OSStatus.PENDENTE ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
-                        {os.status}
-                     </span>
-                  </div>
-                  <h3 className="font-bold text-lg text-gray-800 mb-1">{os.device}</h3>
-                  <p className="text-gray-600 text-sm mb-4 flex items-center gap-1"><Users size={14}/> {os.customerName}</p>
-                  
-                  <div className="bg-gray-50 p-3 rounded-lg mb-4 border border-gray-100">
-                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1 font-bold">Problema Relatado</p>
-                     <p className="text-sm text-gray-700 line-clamp-2">{os.description}</p>
+               <div key={os.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all group flex flex-col">
+                  <div className="p-5 flex-1">
+                     <div className="flex justify-between items-start mb-3">
+                        <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{os.id}</span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium 
+                           ${os.status === OSStatus.CONCLUIDO ? 'bg-green-100 text-green-800' : 
+                           os.status === OSStatus.PENDENTE ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
+                           {os.status}
+                        </span>
+                     </div>
+                     <h3 className="font-bold text-lg text-gray-800 mb-1">{os.device}</h3>
+                     <p className="text-gray-600 text-sm mb-4 flex items-center gap-1"><Users size={14}/> {os.customerName}</p>
+                     
+                     <div className="bg-gray-50 p-3 rounded-lg mb-4 border border-gray-100">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1 font-bold">Problema Relatado</p>
+                        <p className="text-sm text-gray-700 line-clamp-2">{os.description}</p>
+                     </div>
+                     {os.imei && <p className="text-xs text-gray-400 mb-1">IMEI: {os.imei}</p>}
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50">
                      <div className="flex items-center gap-1 text-xs text-gray-500">
                         <Clock size={14}/> {new Date(os.createdAt).toLocaleDateString()}
                      </div>
                      <div className="flex gap-2">
                         {os.status !== OSStatus.CONCLUIDO && (
-                           <button onClick={() => updateServiceOrder(os.id, {status: OSStatus.CONCLUIDO})} className="text-green-600 bg-green-50 hover:bg-green-100 p-1.5 rounded-lg transition-colors" title="Concluir">
+                           <button onClick={() => updateServiceOrder(os.id, {status: OSStatus.CONCLUIDO})} className="text-green-600 bg-white border border-green-200 hover:bg-green-50 p-1.5 rounded-lg transition-colors shadow-sm" title="Concluir">
                               <CheckCircle size={18} />
                            </button>
                         )}
-                        <button className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors" title="Ver Detalhes / PIX">
+                        <button 
+                           onClick={() => setPrintingOS(os)}
+                           className="text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 p-1.5 rounded-lg transition-colors shadow-sm" 
+                           title="Imprimir OS"
+                        >
+                           <Printer size={18} />
+                        </button>
+                        <button className="text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 p-1.5 rounded-lg transition-colors shadow-sm" title="Ver Detalhes">
                            <QrCode size={18} />
                         </button>
                      </div>
-                  </div>
                   </div>
                </div>
             ))}
@@ -331,12 +464,18 @@ export const ServiceOrders: React.FC = () => {
      const [formData, setFormData] = useState({
         customerId: paramCustomerId || '',
         device: '',
+        imei: '',
+        serialNumber: '',
         description: '',
         priority: 'Média' as const,
+        value: 0,
+        warranty: '90 Dias (Peças e Mão de Obra)',
         pixKey: settings.pixKey
      });
      const [isAnalyzing, setIsAnalyzing] = useState(false);
      const [aiResult, setAiResult] = useState('');
+
+     const selectedCustomer = customers.find(c => c.id === formData.customerId);
 
      const handleAI = async () => {
         if (!formData.device || !formData.description) return;
@@ -356,11 +495,14 @@ export const ServiceOrders: React.FC = () => {
            customerId: customer.id,
            customerName: customer.name,
            device: formData.device,
+           imei: formData.imei,
+           serialNumber: formData.serialNumber,
            description: formData.description,
            status: OSStatus.PENDENTE,
            priority: formData.priority,
            createdAt: new Date().toISOString(),
-           totalValue: 0,
+           totalValue: formData.value,
+           warranty: formData.warranty,
            aiDiagnosis: aiResult,
            pixKey: formData.pixKey
         });
@@ -369,19 +511,28 @@ export const ServiceOrders: React.FC = () => {
 
      return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-         <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-               <h2 className="text-xl font-bold text-gray-800">Nova Ordem de Serviço</h2>
+         <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10 shadow-sm">
+               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2"><FileText className="text-blue-600"/> Nova Ordem de Serviço</h2>
                <button onClick={handleCloseModal}><X className="text-gray-400 hover:text-gray-600"/></button>
             </div>
+            
             <form onSubmit={submit} className="p-6 space-y-6">
-               <div className="grid grid-cols-2 gap-4">
-                  <div>
+               
+               {/* Section 1: Client & Priority */}
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2">
                      <label className="label">Cliente</label>
                      <select required className="input" value={formData.customerId} onChange={e => setFormData({...formData, customerId: e.target.value})}>
-                        <option value="">Selecione...</option>
+                        <option value="">Selecione o cliente...</option>
                         {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                      </select>
+                     {selectedCustomer && (
+                        <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-800">
+                           <p><strong>Tel:</strong> {selectedCustomer.phone} | <strong>CPF:</strong> {selectedCustomer.cpfOrCnpj || 'N/A'}</p>
+                           <p className="truncate"><strong>End:</strong> {selectedCustomer.address}, {selectedCustomer.addressNumber}</p>
+                        </div>
+                     )}
                   </div>
                   <div>
                      <label className="label">Prioridade</label>
@@ -390,37 +541,73 @@ export const ServiceOrders: React.FC = () => {
                      </select>
                   </div>
                </div>
+
+               <hr className="border-gray-100" />
+
+               {/* Section 2: Device Data */}
                <div>
-                  <label className="label">Aparelho</label>
-                  <input required className="input" placeholder="Ex: iPhone 11" value={formData.device} onChange={e => setFormData({...formData, device: e.target.value})}/>
-               </div>
-               <div>
-                  <label className="label">Descrição do Problema</label>
-                  <textarea required className="input" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}/>
-               </div>
-
-               {/* AI Section */}
-               <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                  <div className="flex justify-between items-center mb-2">
-                     <span className="text-sm font-bold text-indigo-900 flex items-center gap-2"><BrainCircuit size={16}/> Diagnóstico IA</span>
-                     <button type="button" onClick={handleAI} disabled={isAnalyzing} className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50">
-                        {isAnalyzing ? '...' : 'Gerar'}
-                     </button>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">Dados do Equipamento</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div>
+                        <label className="label">Modelo do Aparelho</label>
+                        <input required className="input" placeholder="Ex: iPhone 11" value={formData.device} onChange={e => setFormData({...formData, device: e.target.value})}/>
+                     </div>
+                     <div>
+                        <label className="label">IMEI (Opcional)</label>
+                        <input className="input" placeholder="00000000000000" value={formData.imei} onChange={e => setFormData({...formData, imei: e.target.value})}/>
+                     </div>
+                     <div>
+                        <label className="label">Nº de Série</label>
+                        <input className="input" placeholder="Serial Number" value={formData.serialNumber} onChange={e => setFormData({...formData, serialNumber: e.target.value})}/>
+                     </div>
                   </div>
-                  {aiResult && <p className="text-xs text-indigo-800 whitespace-pre-wrap">{aiResult}</p>}
                </div>
 
-               {/* PIX Section */}
-               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                  <div className="flex justify-between items-center">
-                     <span className="text-sm font-bold text-gray-700 flex items-center gap-2"><QrCode size={16}/> Chave PIX (Para Pagamento)</span>
-                     <input className="text-xs border p-1 rounded w-1/2" value={formData.pixKey} onChange={e => setFormData({...formData, pixKey: e.target.value})} placeholder="Chave PIX"/>
+               <hr className="border-gray-100" />
+
+               {/* Section 3: Issue */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                     <label className="label">Descrição do Defeito</label>
+                     <textarea required className="input min-h-[120px]" placeholder="Relato do cliente..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}/>
+                     
+                     {/* AI Button */}
+                     <div className="mt-2 flex justify-end">
+                         <button type="button" onClick={handleAI} disabled={isAnalyzing || !formData.device || !formData.description} className="text-xs flex items-center gap-1 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 disabled:opacity-50 transition-colors">
+                            <BrainCircuit size={14}/> {isAnalyzing ? 'Analisando...' : 'Gerar Diagnóstico IA'}
+                         </button>
+                     </div>
+                     {aiResult && (
+                        <div className="mt-2 bg-indigo-50 p-3 rounded-lg border border-indigo-100 text-xs text-indigo-800 whitespace-pre-wrap">
+                           {aiResult}
+                        </div>
+                     )}
                   </div>
-                  <div className="mt-2 text-xs text-gray-500">O QR Code será gerado automaticamente na impressão da OS.</div>
+                  
+                  <div className="space-y-4">
+                     <div>
+                        <label className="label">Orçamento Inicial Estimado (R$)</label>
+                        <input type="number" className="input font-bold" value={formData.value} onChange={e => setFormData({...formData, value: parseFloat(e.target.value) || 0})}/>
+                     </div>
+                     <div>
+                        <label className="label">Garantia</label>
+                        <select className="input" value={formData.warranty} onChange={e => setFormData({...formData, warranty: e.target.value})}>
+                           <option>Sem garantia</option>
+                           <option>30 Dias (Serviço)</option>
+                           <option>90 Dias (Peças e Mão de Obra)</option>
+                           <option>1 Ano (Fabricante)</option>
+                        </select>
+                     </div>
+                     <div>
+                        <label className="label">Chave PIX (Impressão)</label>
+                        <input className="input" value={formData.pixKey} onChange={e => setFormData({...formData, pixKey: e.target.value})} placeholder="Chave PIX"/>
+                     </div>
+                  </div>
                </div>
 
-               <div className="flex justify-end pt-4">
-                  <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700">Salvar OS</button>
+               <div className="flex justify-end pt-6 border-t border-gray-100 gap-3">
+                  <button type="button" onClick={handleCloseModal} className="px-6 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100">Cancelar</button>
+                  <button type="submit" className="bg-blue-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md">Gerar OS</button>
                </div>
             </form>
          </div>
@@ -592,9 +779,12 @@ export const ServiceOrders: React.FC = () => {
        {isModalOpen && <NewOSModal />}
        {isPurchaseModalOpen && <NewPurchaseModal />}
        
+       {/* Print Modal Overlay */}
+       <OSPrintModal />
+       
        <style>{`
-          .label { @apply block text-sm font-bold text-gray-700 mb-1; }
-          .input { @apply w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white; }
+          .label { @apply block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1; }
+          .input { @apply w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow; }
        `}</style>
     </div>
   );

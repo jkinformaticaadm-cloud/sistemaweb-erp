@@ -36,8 +36,8 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 // Initial Mock Data
 const initialCustomers: Customer[] = [
-  { id: '1', name: 'João Silva', phone: '(11) 99999-9999', email: 'joao@email.com', address: 'Rua das Flores, Bairro Jardim', addressNumber: '123', cep: '01001-000' },
-  { id: '2', name: 'Maria Souza', phone: '(11) 88888-8888', email: 'maria@email.com', address: 'Av Paulista, Centro', addressNumber: '1000', cep: '01310-100' },
+  { id: '1', name: 'João Silva', phone: '(11) 99999-9999', email: 'joao@email.com', address: 'Rua das Flores, Bairro Jardim', addressNumber: '123', cep: '01001-000', cpfOrCnpj: '123.456.789-00' },
+  { id: '2', name: 'Maria Souza', phone: '(11) 88888-8888', email: 'maria@email.com', address: 'Av Paulista, Centro', addressNumber: '1000', cep: '01310-100', cpfOrCnpj: '987.654.321-99' },
 ];
 
 const initialProducts: Product[] = [
@@ -61,11 +61,14 @@ const initialOS: ServiceOrder[] = [
     customerId: '1', 
     customerName: 'João Silva', 
     device: 'iPhone 13', 
+    imei: '354810000000001',
+    serialNumber: 'F17D9A001',
     description: 'Tela quebrada após queda.', 
     status: OSStatus.EM_ANDAMENTO, 
     priority: 'Alta', 
     createdAt: new Date().toISOString(), 
     totalValue: 1350,
+    warranty: '90 Dias (Peça e Mão de obra)',
     technicalNotes: 'Aguardando secagem da cola.',
     services: [initialServices[0]]
   },
@@ -74,11 +77,14 @@ const initialOS: ServiceOrder[] = [
     customerId: '2', 
     customerName: 'Maria Souza', 
     device: 'Notebook Dell', 
+    imei: '',
+    serialNumber: 'TAG-DX0001',
     description: 'Não liga, luz de power pisca laranja.', 
     status: OSStatus.PENDENTE, 
     priority: 'Média', 
     createdAt: new Date(Date.now() - 86400000).toISOString(), 
-    totalValue: 0 
+    totalValue: 0,
+    warranty: '30 Dias (Diagnóstico)'
   }
 ];
 
