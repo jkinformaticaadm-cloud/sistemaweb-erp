@@ -12,6 +12,13 @@ export enum TransactionType {
   EXPENSE = 'Despesa'
 }
 
+export enum OrderStatus {
+  PENDING = 'Pendente',
+  READY = 'Pronto',
+  DELIVERED = 'Entregue',
+  CANCELLED = 'Cancelado'
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -54,6 +61,17 @@ export interface Transaction {
 
 export interface CartItem extends Product {
   quantity: number;
+}
+
+export interface SalesOrder {
+  id: string;
+  customerId: string;
+  customerName: string;
+  items: CartItem[];
+  total: number;
+  status: OrderStatus;
+  createdAt: string;
+  deliveryDate?: string;
 }
 
 export interface SystemSettings {

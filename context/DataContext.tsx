@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings } from '../types';
+import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem } from '../types';
 
 interface DataContextType {
   customers: Customer[];
   products: Product[];
   serviceOrders: ServiceOrder[];
   transactions: Transaction[];
+  salesOrders: SalesOrder[];
   settings: SystemSettings;
   addCustomer: (c: Customer) => void;
   addProduct: (p: Product) => void;
@@ -13,6 +14,8 @@ interface DataContextType {
   updateServiceOrder: (id: string, updates: Partial<ServiceOrder>) => void;
   addTransaction: (t: Transaction) => void;
   updateStock: (productId: string, quantity: number) => void;
+  addSalesOrder: (order: SalesOrder) => void;
+  updateSalesOrder: (id: string, updates: Partial<SalesOrder>) => void;
   updateSettings: (s: Partial<SystemSettings>) => void;
   resetData: () => void;
 }
@@ -62,6 +65,19 @@ const initialTransactions: Transaction[] = [
   { id: '2', description: 'Compra de Peças', amount: 450, type: TransactionType.EXPENSE, date: new Date().toISOString(), category: 'Fornecedor' },
 ];
 
+const initialSalesOrders: SalesOrder[] = [
+  {
+    id: 'ENC-001',
+    customerId: '2',
+    customerName: 'Maria Souza',
+    items: [{ id: '4', name: 'Cabo USB-C Premium', price: 80, cost: 20, stock: 30, category: 'Acessórios', quantity: 2 }],
+    total: 160,
+    status: OrderStatus.PENDING,
+    createdAt: new Date().toISOString(),
+    deliveryDate: new Date(Date.now() + 86400000 * 2).toISOString()
+  }
+];
+
 const initialSettings: SystemSettings = {
   companyName: 'TechFix Pro',
   cnpj: '00.000.000/0001-00',
@@ -77,6 +93,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>(initialOS);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [salesOrders, setSalesOrders] = useState<SalesOrder[]>(initialSalesOrders);
   const [settings, setSettings] = useState<SystemSettings>(initialSettings);
 
   const addCustomer = (c: Customer) => setCustomers([...customers, c]);
@@ -96,6 +113,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: p.stock - quantity } : p));
   };
 
+  const addSalesOrder = (order: SalesOrder) => {
+    setSalesOrders([order, ...salesOrders]);
+  };
+
+  const updateSalesOrder = (id: string, updates: Partial<SalesOrder>) => {
+    setSalesOrders(prev => prev.map(order => order.id === id ? { ...order, ...updates } : order));
+  };
+
   const updateSettings = (s: Partial<SystemSettings>) => {
     setSettings(prev => ({ ...prev, ...s }));
   };
@@ -106,14 +131,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProducts(initialProducts);
       setServiceOrders(initialOS);
       setTransactions(initialTransactions);
+      setSalesOrders(initialSalesOrders);
       setSettings(initialSettings);
     }
   };
 
   return (
     <DataContext.Provider value={{
-      customers, products, serviceOrders, transactions, settings,
-      addCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, updateSettings, resetData
+      customers, products, serviceOrders, transactions, salesOrders, settings,
+      addCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, 
+      addSalesOrder, updateSalesOrder, updateSettings, resetData
     }}>
       {children}
     </DataContext.Provider>
