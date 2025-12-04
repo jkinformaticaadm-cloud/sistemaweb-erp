@@ -326,7 +326,7 @@ export const Dashboard: React.FC = () => {
                 {Object.entries(salesData.byPaymentMethod).map(([method, amount]) => (
                     <div key={method} className="flex justify-between py-3 text-sm">
                         <span className="text-gray-600">{method}</span>
-                        <span className="font-medium text-gray-800">R$ {formatCurrency(amount)}</span>
+                        <span className="font-medium text-gray-800">R$ {formatCurrency(amount as number)}</span>
                     </div>
                 ))}
                 {Object.keys(salesData.byPaymentMethod).length === 0 && (
