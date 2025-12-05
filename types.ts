@@ -86,6 +86,7 @@ export interface Purchase {
 export interface OSItem {
   id: string; // Product or Service ID
   name: string;
+  details?: string; // Detailed info like IMEI, Color, Brand
   quantity: number;
   unitPrice: number;
   total: number;
@@ -142,7 +143,7 @@ export interface SalesOrder {
   customerId: string;
   customerName: string;
   // Detailed fields matching OS structure
-  device?: string;
+  device?: string; // Kept for backward compatibility or main device focus
   imei?: string;
   serialNumber?: string;
   description?: string; // Observations
@@ -153,6 +154,7 @@ export interface SalesOrder {
   deliveryDate?: string;
   warranty?: string;
   technicalNotes?: string;
+  paymentMethod?: string;
 }
 
 export interface InstallmentRate {

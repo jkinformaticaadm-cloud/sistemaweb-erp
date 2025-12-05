@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { SalesOrder, OrderStatus, OSItem } from '../types';
+import { SalesOrder, OrderStatus, OSItem, Transaction, TransactionType } from '../types';
 import { 
   Plus, Search, FileText, X, Package, ShoppingBag, 
-  Printer, Smartphone, User, Trash2, Edit, MessageCircle, DollarSign
+  Printer, Smartphone, User, Trash2, Edit, MessageCircle, DollarSign, CreditCard
 } from 'lucide-react';
 
 export const CompleteSales: React.FC = () => {
   const { 
-    salesOrders, customers, products, services, 
+    salesOrders, customers, products, services, settings, addTransaction,
     addSalesOrder, updateSalesOrder 
   } = useData();
   
@@ -22,7 +22,6 @@ export const CompleteSales: React.FC = () => {
   const SalePrintModal = () => {
     if (!printingSale) return null;
     const client = customers.find(c => c.id === printingSale.customerId);
-    const { settings } = useData(); // Get settings for company info
 
     return (
        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:p-0 print:bg-white print:static print:block">
@@ -65,39 +64,16 @@ export const CompleteSales: React.FC = () => {
                     </div>
                  </div>
 
-                 {/* Client & Device Grid */}
-                 <div className="grid grid-cols-2 gap-8">
-                    {/* Client Data */}
-                    <div className="border border-gray-300 rounded-lg p-4">
-                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
-                          <User size={16}/> Dados do Cliente
-                       </h3>
-                       <div className="space-y-1 text-sm">
-                          <p><span className="font-bold">Nome:</span> {client?.name || printingSale.customerName}</p>
-                          <p><span className="font-bold">Telefone:</span> {client?.phone}</p>
-                          <p><span className="font-bold">Endereço:</span> {client?.address}, {client?.addressNumber}</p>
-                       </div>
-                    </div>
-
-                    {/* Sales Details Data */}
-                    <div className="border border-gray-300 rounded-lg p-4">
-                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
-                          <Smartphone size={16}/> Detalhes do Produto Principal
-                       </h3>
-                       <div className="space-y-1 text-sm">
-                          <p><span className="font-bold">Equipamento:</span> {printingSale.device || 'Diversos'}</p>
-                          <p><span className="font-bold">IMEI/Serial:</span> {printingSale.imei || printingSale.serialNumber || '-'}</p>
-                          <p><span className="font-bold">Garantia:</span> {printingSale.warranty || 'Consultar termos'}</p>
-                       </div>
-                    </div>
-                 </div>
-
-                 {/* Observations */}
+                 {/* Client Data Only */}
                  <div className="border border-gray-300 rounded-lg p-4">
-                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
-                       Observações / Descrição da Venda
+                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                       <User size={16}/> Dados do Cliente
                     </h3>
-                    <p className="text-sm whitespace-pre-wrap min-h-[40px]">{printingSale.description || 'Sem observações.'}</p>
+                    <div className="space-y-1 text-sm">
+                       <p><span className="font-bold">Nome:</span> {client?.name || printingSale.customerName}</p>
+                       <p><span className="font-bold">Telefone:</span> {client?.phone}</p>
+                       <p><span className="font-bold">Endereço:</span> {client?.address}, {client?.addressNumber}</p>
+                    </div>
                  </div>
 
                  {/* Items Details */}
@@ -107,7 +83,7 @@ export const CompleteSales: React.FC = () => {
                        <table className="w-full text-xs">
                           <thead>
                              <tr className="border-b border-gray-100 text-gray-400">
-                                <th className="p-2 text-left">Item</th>
+                                <th className="p-2 text-left">Item / Detalhes</th>
                                 <th className="p-2 text-center">Tipo</th>
                                 <th className="p-2 text-center">Qtd</th>
                                 <th className="p-2 text-right">Unitário</th>
@@ -117,7 +93,10 @@ export const CompleteSales: React.FC = () => {
                           <tbody>
                              {printingSale.items.map((item, idx) => (
                                 <tr key={idx} className="border-b border-gray-50 last:border-0">
-                                   <td className="p-2">{item.name}</td>
+                                   <td className="p-2">
+                                       <span className="font-bold block">{item.name}</span>
+                                       {item.details && <span className="text-[10px] text-gray-500 block mt-0.5 whitespace-pre-wrap">{item.details}</span>}
+                                   </td>
                                    <td className="p-2 text-center uppercase">{item.type === 'product' ? 'Produto' : 'Serviço'}</td>
                                    <td className="p-2 text-center">{item.quantity}</td>
                                    <td className="p-2 text-right">R$ {item.unitPrice.toFixed(2)}</td>
@@ -129,12 +108,26 @@ export const CompleteSales: React.FC = () => {
                     </div>
                  </div>
 
+                 {/* Observations */}
+                 <div className="border border-gray-300 rounded-lg p-4">
+                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                       Observações / Descrição
+                    </h3>
+                    <p className="text-sm whitespace-pre-wrap min-h-[20px]">{printingSale.description || 'Sem observações.'}</p>
+                 </div>
+
                  {/* Financials */}
                  <div className="flex justify-end">
                     <div className="w-1/2 border border-gray-300 rounded-lg overflow-hidden">
                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Totalização</div>
                        <div className="p-4 space-y-2">
-                          <div className="flex justify-between text-2xl font-bold pt-2 mt-2 text-gray-900">
+                          {printingSale.paymentMethod && (
+                             <div className="flex justify-between text-xs text-gray-600">
+                                <span>Forma de Pagamento</span>
+                                <span className="font-bold">{printingSale.paymentMethod}</span>
+                             </div>
+                          )}
+                          <div className="flex justify-between text-2xl font-bold pt-2 mt-2 text-gray-900 border-t border-gray-100">
                              <span>Total a Pagar</span>
                              <span>R$ {printingSale.totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                           </div>
@@ -163,19 +156,20 @@ export const CompleteSales: React.FC = () => {
   const SalesFormModal = () => {
      const [formData, setFormData] = useState<Partial<SalesOrder>>({
         customerId: '',
-        device: '',
-        imei: '',
-        serialNumber: '',
         description: '',
         warranty: '90 Dias',
         status: OrderStatus.PENDING,
-        items: []
+        items: [],
+        paymentMethod: ''
      });
 
      const [addedItems, setAddedItems] = useState<OSItem[]>([]);
+     
+     // Product Selection States
      const [selectedProductId, setSelectedProductId] = useState('');
      const [productQty, setProductQty] = useState(1);
      const [productPrice, setProductPrice] = useState(0);
+     const [productImeiInput, setProductImeiInput] = useState(''); // Manual IMEI input
 
      // Init for Edit
      useEffect(() => {
@@ -197,42 +191,87 @@ export const CompleteSales: React.FC = () => {
      const handleAddProduct = () => {
         const prod = products.find(p => p.id === selectedProductId);
         if (prod) {
+           // Construct Detailed Info
+           let detailString = '';
+           const specs = [];
+           if (prod.brand) specs.push(prod.brand);
+           if (prod.model) specs.push(prod.model);
+           if (prod.color) specs.push(prod.color);
+           if (prod.storage) specs.push(prod.storage);
+           if (prod.condition) specs.push(prod.condition);
+           
+           if (specs.length > 0) detailString += specs.join(' - ');
+
+           // Use product IMEI or manual input
+           const finalImei = productImeiInput || prod.imei;
+           if (finalImei) {
+              detailString += ` | IMEI/Serial: ${finalImei}`;
+           }
+
            addItem({
               id: prod.id,
               name: prod.name,
+              details: detailString,
               quantity: productQty,
               unitPrice: productPrice,
               total: productPrice * productQty,
               type: 'product'
            });
+           
+           // Reset fields
            setSelectedProductId('');
            setProductQty(1);
            setProductPrice(0);
+           setProductImeiInput('');
         }
      };
 
-     const submit = (e: React.FormEvent) => {
+     const submit = (e: React.FormEvent, finalize = false) => {
         e.preventDefault();
         const customer = customers.find(c => c.id === formData.customerId);
         if (!customer) return alert("Selecione um cliente");
+
+        if (finalize && !formData.paymentMethod) {
+           return alert("Selecione a forma de pagamento para finalizar e receber.");
+        }
+
+        const finalStatus = finalize ? OrderStatus.FINISHED : (formData.status || OrderStatus.PENDING);
 
         const saleData: SalesOrder = {
            id: editingSale ? editingSale.id : `V-${Date.now().toString().slice(-6)}`,
            customerId: customer.id,
            customerName: customer.name,
-           device: formData.device,
-           imei: formData.imei,
-           serialNumber: formData.serialNumber,
+           // Note: Device fields removed from top level, details are now in items
            description: formData.description,
-           status: formData.status || OrderStatus.PENDING,
+           status: finalStatus,
            createdAt: editingSale ? editingSale.createdAt : new Date().toISOString(),
            totalValue: totalValue,
            warranty: formData.warranty,
-           items: addedItems
+           items: addedItems,
+           paymentMethod: formData.paymentMethod
         };
 
         if (editingSale) updateSalesOrder(editingSale.id, saleData);
         else addSalesOrder(saleData);
+
+        // If finalizing, generate transaction
+        if (finalize && finalStatus === OrderStatus.FINISHED) {
+            const transaction: Transaction = {
+               id: `TR-VS-${saleData.id}`,
+               description: `Venda Completa #${saleData.id} - ${saleData.customerName}`,
+               amount: totalValue,
+               type: TransactionType.INCOME,
+               date: new Date().toISOString(),
+               category: 'Vendas',
+               transactionDetails: {
+                  customerName: saleData.customerName,
+                  paymentMethod: saleData.paymentMethod,
+                  items: saleData.items.map(i => ({...i} as any)) // Simplify mapping
+               }
+            };
+            addTransaction(transaction);
+            alert("Venda finalizada e lançada no financeiro!");
+        }
 
         setIsModalOpen(false);
         setEditingSale(null);
@@ -248,7 +287,7 @@ export const CompleteSales: React.FC = () => {
                <button onClick={() => { setIsModalOpen(false); setEditingSale(null); }}><X className="text-gray-400 hover:text-gray-600"/></button>
             </div>
             
-            <form onSubmit={submit} className="p-6 space-y-6 flex-1 overflow-y-auto">
+            <form className="p-6 space-y-6 flex-1 overflow-y-auto">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                      <label className="label">Cliente</label>
@@ -258,7 +297,7 @@ export const CompleteSales: React.FC = () => {
                      </select>
                   </div>
                   <div>
-                     <label className="label">Status</label>
+                     <label className="label">Status Atual</label>
                      <select className="input" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
                         <option value={OrderStatus.PENDING}>Pendente</option>
                         <option value={OrderStatus.READY}>Pronto</option>
@@ -271,33 +310,11 @@ export const CompleteSales: React.FC = () => {
 
                <hr className="border-gray-100" />
 
-               <div>
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">Dados do Equipamento (Se aplicável)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <div>
-                        <label className="label">Modelo / Produto Principal</label>
-                        <input className="input" placeholder="Ex: iPhone 13 128GB" value={formData.device} onChange={e => setFormData({...formData, device: e.target.value})}/>
-                     </div>
-                     <div>
-                        <label className="label">IMEI (Opcional)</label>
-                        <input className="input" placeholder="Identificação única" value={formData.imei} onChange={e => setFormData({...formData, imei: e.target.value})}/>
-                     </div>
-                     <div>
-                        <label className="label">Nº de Série</label>
-                        <input className="input" placeholder="Serial" value={formData.serialNumber} onChange={e => setFormData({...formData, serialNumber: e.target.value})}/>
-                     </div>
-                  </div>
-               </div>
-
-               <div>
-                  <label className="label">Descrição / Observações da Venda</label>
-                  <textarea className="input min-h-[60px]" placeholder="Detalhes adicionais..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}/>
-               </div>
-
+               {/* Items Section */}
                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                   <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2"><Package size={18}/> Adicionar Itens</h3>
-                  <div className="flex gap-2 items-end">
-                     <div className="flex-1">
+                  <div className="flex flex-col md:flex-row gap-2 items-end">
+                     <div className="flex-1 w-full">
                         <label className="label">Produto</label>
                         <select 
                            className="input text-sm" 
@@ -311,6 +328,10 @@ export const CompleteSales: React.FC = () => {
                            <option value="">Selecione...</option>
                            {products.map(p => <option key={p.id} value={p.id}>{p.name} (Est: {p.stock})</option>)}
                         </select>
+                     </div>
+                     <div className="w-full md:w-48">
+                        <label className="label">IMEI/Serial (Opcional)</label>
+                        <input className="input text-sm" placeholder="Ex: 3544..." value={productImeiInput} onChange={e => setProductImeiInput(e.target.value)} />
                      </div>
                      <div className="w-20">
                         <label className="label">Qtd</label>
@@ -338,7 +359,10 @@ export const CompleteSales: React.FC = () => {
                      <tbody className="divide-y divide-gray-100">
                         {addedItems.map((item, idx) => (
                            <tr key={idx} className="hover:bg-gray-50">
-                              <td className="p-3">{item.name}</td>
+                              <td className="p-3">
+                                 <p className="font-bold text-gray-800">{item.name}</p>
+                                 {item.details && <p className="text-xs text-gray-500 mt-0.5">{item.details}</p>}
+                              </td>
                               <td className="p-3 text-center">{item.quantity}</td>
                               <td className="p-3 text-right">R$ {item.unitPrice.toFixed(2)}</td>
                               <td className="p-3 text-right font-medium">R$ {item.total.toFixed(2)}</td>
@@ -356,20 +380,50 @@ export const CompleteSales: React.FC = () => {
                   </table>
                </div>
 
+               {/* Moved Observations to bottom */}
                <div>
-                  <label className="label">Garantia</label>
-                  <select className="input" value={formData.warranty} onChange={e => setFormData({...formData, warranty: e.target.value})}>
-                     <option>Sem garantia</option>
-                     <option>30 Dias</option>
-                     <option>90 Dias</option>
-                     <option>1 Ano</option>
-                  </select>
+                  <label className="label">Descrição / Observações da Venda</label>
+                  <textarea className="input min-h-[60px]" placeholder="Detalhes adicionais..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}/>
                </div>
 
-               <div className="flex justify-end pt-6 border-t border-gray-100 gap-3 shrink-0">
-                  <button type="button" onClick={() => { setIsModalOpen(false); setEditingSale(null); }} className="px-6 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100">Cancelar</button>
-                  <button type="submit" className="bg-green-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-green-700 shadow-md">
-                     {editingSale ? 'Atualizar Venda' : 'Finalizar Pedido'}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                     <label className="label">Garantia</label>
+                     <select className="input" value={formData.warranty} onChange={e => setFormData({...formData, warranty: e.target.value})}>
+                        <option>Sem garantia</option>
+                        <option>30 Dias</option>
+                        <option>90 Dias</option>
+                        <option>1 Ano</option>
+                     </select>
+                  </div>
+                  <div>
+                     <label className="label flex items-center gap-1"><CreditCard size={14}/> Forma de Pagamento</label>
+                     <select className="input font-bold text-gray-700" value={formData.paymentMethod} onChange={e => setFormData({...formData, paymentMethod: e.target.value})}>
+                        <option value="">Selecione...</option>
+                        <option>Dinheiro</option>
+                        <option>Pix</option>
+                        <option>Cartão de Crédito</option>
+                        <option>Cartão de Débito</option>
+                        <option>Crediário</option>
+                     </select>
+                  </div>
+               </div>
+
+               <div className="flex flex-col md:flex-row justify-end pt-6 border-t border-gray-100 gap-3 shrink-0">
+                  <button type="button" onClick={() => { setIsModalOpen(false); setEditingSale(null); }} className="px-6 py-3 rounded-lg font-medium text-gray-600 hover:bg-gray-100 border border-gray-200">Cancelar</button>
+                  
+                  <button 
+                     onClick={(e) => submit(e, false)} 
+                     className="bg-blue-50 text-blue-600 px-6 py-3 rounded-lg font-bold hover:bg-blue-100 transition-colors"
+                  >
+                     Salvar Rascunho
+                  </button>
+
+                  <button 
+                     onClick={(e) => submit(e, true)} 
+                     className="bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 shadow-md flex items-center gap-2"
+                  >
+                     <DollarSign size={20}/> Receber / Finalizar
                   </button>
                </div>
             </form>
@@ -381,7 +435,6 @@ export const CompleteSales: React.FC = () => {
   // --- Main List Render ---
   const filteredSales = salesOrders.filter(sale => 
      sale.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     (sale.device && sale.device.toLowerCase().includes(searchTerm.toLowerCase())) ||
      sale.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -389,7 +442,7 @@ export const CompleteSales: React.FC = () => {
      const client = customers.find(c => c.id === sale.customerId);
      if (!client) return alert('Cliente não encontrado');
      const phone = client.phone.replace(/\D/g, '');
-     const msg = `Olá ${client.name}, aqui é da TechFix. Segue o resumo do seu pedido #${sale.id}. Valor Total: R$ ${sale.totalValue.toFixed(2)}. Equipamento: ${sale.device || 'Produtos diversos'}.`;
+     const msg = `Olá ${client.name}, aqui é da TechFix. Segue o resumo do seu pedido #${sale.id}. Valor Total: R$ ${sale.totalValue.toFixed(2)}.`;
      window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
@@ -414,7 +467,7 @@ export const CompleteSales: React.FC = () => {
           <Search size={20} className="text-gray-400 ml-2" />
           <input 
              type="text" 
-             placeholder="Buscar por cliente, ID, aparelho ou IMEI..." 
+             placeholder="Buscar por cliente, ID..." 
              className="flex-1 outline-none text-gray-700 h-10 bg-transparent"
              value={searchTerm}
              onChange={(e) => setSearchTerm(e.target.value)}
@@ -438,8 +491,7 @@ export const CompleteSales: React.FC = () => {
                          <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${sale.status === OrderStatus.FINISHED ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>{sale.status}</span>
                       </div>
                       <h3 className="font-bold text-gray-800 text-lg">{sale.customerName}</h3>
-                      <p className="text-sm text-gray-600 flex items-center gap-1"><Smartphone size={14}/> {sale.device || 'Venda de Produtos'}</p>
-                      {sale.imei && <p className="text-xs text-gray-400 mt-0.5">IMEI: {sale.imei}</p>}
+                      <p className="text-sm text-gray-600 mt-1">{sale.items.length} itens no pedido</p>
                    </div>
 
                    <div className="flex flex-col items-end gap-1 min-w-[120px]">
@@ -451,7 +503,7 @@ export const CompleteSales: React.FC = () => {
                       <button 
                          onClick={() => { setEditingSale(sale); setIsModalOpen(true); }}
                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                         title="Editar"
+                         title="Editar / Finalizar"
                       >
                          <Edit size={18}/>
                       </button>
