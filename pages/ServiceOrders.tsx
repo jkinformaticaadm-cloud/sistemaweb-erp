@@ -418,272 +418,221 @@ export const ServiceOrders: React.FC = () => {
 
      return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-         <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-y-auto flex flex-col shadow-2xl">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10 shadow-sm shrink-0">
+         <div className="bg-white rounded-xl w-full max-w-4xl max-h-[95vh] overflow-y-auto flex flex-col shadow-xl">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10 shadow-sm shrink-0">
                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                   <FileText className="text-blue-600"/> {editingOS ? `Editar OS #${editingOS.id}` : 'Nova Ordem de Serviço'}
                </h2>
-               <button onClick={handleCloseModal}><X className="text-gray-400 hover:text-gray-600"/></button>
+               <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600"><X size={24}/></button>
             </div>
             
-            <form onSubmit={submit} className="p-6 space-y-8 flex-1 overflow-y-auto bg-gray-50/30">
+            <form onSubmit={submit} className="p-6 space-y-6 flex-1 overflow-y-auto bg-white">
                
-               {/* --- SECTION 1: CLIENT --- */}
-               <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 shadow-sm">
-                  <h3 className="text-sm font-bold text-blue-800 uppercase tracking-wide mb-4 flex items-center gap-2">
-                     <User size={16}/> Dados do Cliente
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                     <div className="md:col-span-2">
-                        <label className="label text-blue-900">Cliente *</label>
-                        <select 
-                           required 
-                           className="input text-lg font-medium h-12 bg-white" 
-                           value={formData.customerId} 
-                           onChange={e => setFormData({...formData, customerId: e.target.value})} 
-                           disabled={!!editingOS}
-                        >
-                           <option value="">-- Selecione o Cliente --</option>
-                           {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                        {selectedCustomer && (
-                           <div className="mt-2 flex gap-4 text-xs text-blue-700 font-medium bg-blue-100/50 p-2 rounded">
-                              <span>Tel: {selectedCustomer.phone}</span>
-                              {selectedCustomer.cpfOrCnpj && <span>CPF: {selectedCustomer.cpfOrCnpj}</span>}
-                           </div>
-                        )}
-                     </div>
-                     <div>
-                        <label className="label text-blue-900">Prioridade</label>
-                        <select 
-                           className="input h-12 bg-white" 
-                           value={formData.priority} 
-                           onChange={e => setFormData({...formData, priority: e.target.value as any})}
-                        >
-                           <option>Baixa</option>
-                           <option>Média</option>
-                           <option>Alta</option>
-                        </select>
-                     </div>
+               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Row 1: Client & Basic Info */}
+                  <div className="md:col-span-2">
+                     <label className="label">Cliente *</label>
+                     <select 
+                        required 
+                        className="input" 
+                        value={formData.customerId} 
+                        onChange={e => setFormData({...formData, customerId: e.target.value})} 
+                        disabled={!!editingOS}
+                     >
+                        <option value="">-- Selecione o Cliente --</option>
+                        {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                     </select>
                   </div>
-               </div>
-
-               {/* --- SECTION 2: DEVICE --- */}
-               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4 flex items-center gap-2">
-                     <Smartphone size={16}/> Dados do Aparelho
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                     <div className="md:col-span-3">
-                        <label className="label">Modelo do Aparelho *</label>
-                        <input 
-                           required 
-                           className="input text-lg font-bold h-12" 
-                           placeholder="Ex: iPhone 13 Pro Max - Azul" 
-                           value={formData.device} 
-                           onChange={e => setFormData({...formData, device: e.target.value})}
-                        />
-                     </div>
-                     <div>
-                        <label className="label">IMEI (Opcional)</label>
-                        <input 
-                           className="input bg-gray-50" 
-                           placeholder="00000000000000" 
-                           value={formData.imei} 
-                           onChange={e => setFormData({...formData, imei: e.target.value})}
-                        />
-                     </div>
-                     <div>
-                        <label className="label">Nº de Série</label>
-                        <input 
-                           className="input bg-gray-50" 
-                           placeholder="Serial Number" 
-                           value={formData.serialNumber} 
-                           onChange={e => setFormData({...formData, serialNumber: e.target.value})}
-                        />
-                     </div>
-                     <div>
-                        <label className="label flex items-center gap-1"><Lock size={14}/> Senha (PIN/Texto)</label>
-                        <input 
-                           className="input bg-gray-50 font-medium" 
-                           placeholder="Ex: 123456" 
-                           value={formData.devicePassword} 
-                           onChange={e => setFormData({...formData, devicePassword: e.target.value})}
-                        />
-                     </div>
+                  <div className="md:col-span-1">
+                     <label className="label">Prioridade</label>
+                     <select 
+                        className="input" 
+                        value={formData.priority} 
+                        onChange={e => setFormData({...formData, priority: e.target.value as any})}
+                     >
+                        <option>Baixa</option>
+                        <option>Média</option>
+                        <option>Alta</option>
+                     </select>
+                  </div>
+                  <div className="md:col-span-1">
+                     <label className="label">Status Inicial</label>
+                     <select 
+                        className="input" 
+                        value={formData.status} 
+                        onChange={e => setFormData({...formData, status: e.target.value as any})}
+                     >
+                        <option>{OSStatus.PENDENTE}</option>
+                        <option>{OSStatus.EM_ANALISE}</option>
+                        <option>{OSStatus.APROVADO}</option>
+                     </select>
                   </div>
 
-                  {/* Pattern Lock (Optional Accordion or Block) */}
-                  <div className="border-t border-gray-100 pt-4">
-                     <div className="flex flex-col items-center justify-center bg-gray-50 p-4 rounded-xl border border-dashed border-gray-300">
-                        <label className="label flex items-center gap-1 mb-2 text-gray-500"><Grid3X3 size={14}/> Senha Padrão (Desenho)</label>
-                        <PatternLock value={formData.patternPassword} onChange={(val) => setFormData({...formData, patternPassword: val})} />
-                        <p className="text-[10px] text-gray-400 mt-2">Clique nos pontos na ordem correta</p>
+                  {/* Row 2: Device Info */}
+                  <div className="md:col-span-2">
+                     <label className="label">Aparelho / Modelo *</label>
+                     <input 
+                        required 
+                        className="input" 
+                        placeholder="Ex: iPhone 13 Pro Max - Azul" 
+                        value={formData.device} 
+                        onChange={e => setFormData({...formData, device: e.target.value})}
+                     />
+                  </div>
+                  <div className="md:col-span-1">
+                     <label className="label">IMEI (Opcional)</label>
+                     <input 
+                        className="input" 
+                        placeholder="00000000000000" 
+                        value={formData.imei} 
+                        onChange={e => setFormData({...formData, imei: e.target.value})}
+                     />
+                  </div>
+                  <div className="md:col-span-1">
+                     <label className="label">Nº de Série</label>
+                     <input 
+                        className="input" 
+                        placeholder="Serial" 
+                        value={formData.serialNumber} 
+                        onChange={e => setFormData({...formData, serialNumber: e.target.value})}
+                     />
+                  </div>
+
+                  {/* Row 3: Security */}
+                  <div className="md:col-span-1">
+                     <label className="label flex items-center gap-1"><Lock size={12}/> Senha (PIN/Texto)</label>
+                     <input 
+                        className="input" 
+                        placeholder="Ex: 123456" 
+                        value={formData.devicePassword} 
+                        onChange={e => setFormData({...formData, devicePassword: e.target.value})}
+                     />
+                  </div>
+                  <div className="md:col-span-3 flex items-center gap-4 border border-gray-200 rounded-lg p-3">
+                     <div className="flex-1">
+                        <label className="label mb-0 flex items-center gap-1"><Grid3X3 size={12}/> Senha Padrão</label>
+                        <p className="text-[10px] text-gray-400">Desenhe ao lado se necessário</p>
+                     </div>
+                     <div className="transform scale-75 origin-right">
+                        <PatternLock size={100} value={formData.patternPassword} onChange={(val) => setFormData({...formData, patternPassword: val})} />
                      </div>
                   </div>
-               </div>
 
-               {/* --- SECTION 3: ISSUE --- */}
-               <div className="bg-red-50 p-6 rounded-xl border border-red-100 shadow-sm">
-                  <h3 className="text-sm font-bold text-red-800 uppercase tracking-wide mb-4 flex items-center gap-2">
-                     <AlertTriangle size={16}/> Relato do Defeito
-                  </h3>
-                  <div>
-                     <label className="label text-red-900">Descrição Detalhada *</label>
+                  {/* Row 4: Description */}
+                  <div className="md:col-span-4">
+                     <label className="label">Descrição do Defeito *</label>
                      <textarea 
                         required 
-                        className="input min-h-[100px] text-base leading-relaxed bg-white" 
+                        className="input min-h-[100px]" 
                         placeholder="Descreva o problema relatado pelo cliente..." 
                         value={formData.description} 
                         onChange={e => setFormData({...formData, description: e.target.value})}
                      />
-                     
-                     {/* AI Button */}
-                     <div className="mt-3 flex justify-between items-center">
-                         <span className="text-xs text-red-400 font-medium">Seja específico para melhor diagnóstico.</span>
-                         <button type="button" onClick={handleAI} disabled={isAnalyzing || !formData.device || !formData.description} className="text-xs flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm font-bold">
-                            <BrainCircuit size={16}/> {isAnalyzing ? 'Gerando Análise...' : 'Diagnóstico IA'}
-                         </button>
+                     <div className="mt-2 flex justify-end">
+                        <button type="button" onClick={handleAI} disabled={isAnalyzing || !formData.device || !formData.description} className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded flex items-center gap-2 transition-colors border border-indigo-200">
+                           <BrainCircuit size={14}/> {isAnalyzing ? 'Analisando...' : 'Diagnóstico IA'}
+                        </button>
                      </div>
                      {(aiResult || formData.aiDiagnosis) && (
-                        <div className="mt-4 bg-white p-4 rounded-xl border border-indigo-100 text-sm text-gray-700 whitespace-pre-wrap shadow-sm">
-                           <strong className="text-indigo-600 block mb-2">Sugestão da IA:</strong>
+                        <div className="mt-2 p-3 bg-indigo-50 rounded-lg text-sm text-gray-700 border border-indigo-100">
+                           <strong className="text-indigo-700 block mb-1">Sugestão IA:</strong>
                            {aiResult || formData.aiDiagnosis}
                         </div>
                      )}
                   </div>
-               </div>
-
-               <div className="flex items-center gap-4 py-4">
-                  <div className="h-px bg-gray-200 flex-1"></div>
-                  <span className="text-xs font-bold text-gray-400 uppercase">Orçamento / Serviços (Opcional na Abertura)</span>
-                  <div className="h-px bg-gray-200 flex-1"></div>
-               </div>
-
-               {/* Section 4: Items (Compact) */}
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 opacity-80 hover:opacity-100 transition-opacity">
                   
-                  {/* Add Products */}
-                  <div className="bg-white p-4 rounded-xl border border-gray-200">
-                     <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2 text-sm"><Package size={16}/> Peças / Produtos</h3>
-                     <div className="space-y-2">
-                        <select 
-                           className="input text-sm h-10" 
-                           value={selectedProductId} 
-                           onChange={e => {
-                              setSelectedProductId(e.target.value);
-                              const p = products.find(prod => prod.id === e.target.value);
-                              if (p) setProductPrice(p.price);
-                           }}
-                        >
-                           <option value="">+ Adicionar Produto...</option>
-                           {products.map(p => <option key={p.id} value={p.id}>{p.name} (Est: {p.stock})</option>)}
-                        </select>
-                        <div className="flex gap-2">
-                           <input type="number" className="input text-sm w-20 h-10" placeholder="Qtd" value={productQty} onChange={e => setProductQty(Number(e.target.value))}/>
-                           <div className="relative flex-1">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">R$</span>
-                              <input type="number" className="input text-sm pl-8 h-10 w-full" placeholder="Unit." value={productPrice} onChange={e => setProductPrice(Number(e.target.value))}/>
-                           </div>
-                           <button type="button" onClick={handleAddProduct} className="bg-green-600 text-white px-3 rounded-lg hover:bg-green-700"><Plus size={18}/></button>
+                  <div className="md:col-span-4 border-t border-gray-100 my-2"></div>
+
+                  {/* Row 5: Add Items (Compact) */}
+                  <div className="md:col-span-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                     <h3 className="font-bold text-gray-700 mb-3 text-sm flex items-center gap-2"><ShoppingCart size={16}/> Adicionar Itens (Peças/Serviços)</h3>
+                     
+                     <div className="flex flex-col md:flex-row gap-4 mb-4">
+                        {/* Product Add */}
+                        <div className="flex-1 flex gap-2">
+                           <select className="input text-sm" value={selectedProductId} onChange={e => {
+                                 setSelectedProductId(e.target.value);
+                                 const p = products.find(prod => prod.id === e.target.value);
+                                 if (p) setProductPrice(p.price);
+                              }}>
+                              <option value="">+ Produto...</option>
+                              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                           </select>
+                           <input type="number" className="input w-20 text-sm" placeholder="Qtd" value={productQty} onChange={e => setProductQty(Number(e.target.value))}/>
+                           <input type="number" className="input w-24 text-sm" placeholder="R$" value={productPrice} onChange={e => setProductPrice(Number(e.target.value))}/>
+                           <button type="button" onClick={handleAddProduct} className="bg-white border border-gray-300 text-green-600 hover:bg-green-50 p-2 rounded-lg"><Plus size={18}/></button>
+                        </div>
+                        {/* Service Add */}
+                        <div className="flex-1 flex gap-2">
+                           <select className="input text-sm" value={selectedServiceId} onChange={e => {
+                                 setSelectedServiceId(e.target.value);
+                                 const s = services.find(svc => svc.id === e.target.value);
+                                 if (s) { setServicePrice(s.price); setServiceDescription(s.name); } 
+                                 else { setServiceDescription(''); }
+                              }}>
+                              <option value="">+ Serviço...</option>
+                              {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                              <option value="custom">Outro</option>
+                           </select>
+                           {selectedServiceId === 'custom' && <input className="input text-sm" placeholder="Desc." value={serviceDescription} onChange={e => setServiceDescription(e.target.value)}/>}
+                           <input type="number" className="input w-24 text-sm" placeholder="R$" value={servicePrice} onChange={e => setServicePrice(Number(e.target.value))}/>
+                           <button type="button" onClick={handleAddService} className="bg-white border border-gray-300 text-blue-600 hover:bg-blue-50 p-2 rounded-lg"><Plus size={18}/></button>
                         </div>
                      </div>
+
+                     {/* Items List */}
+                     {addedItems.length > 0 && (
+                        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                           <table className="w-full text-sm text-left">
+                              <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
+                                 <tr><th className="p-2">Item</th><th className="p-2 text-center">Tipo</th><th className="p-2 text-right">Valor</th><th className="p-2"></th></tr>
+                              </thead>
+                              <tbody>
+                                 {addedItems.map((item, idx) => (
+                                    <tr key={idx} className="border-t border-gray-100">
+                                       <td className="p-2">{item.name} <span className="text-xs text-gray-400">x{item.quantity}</span></td>
+                                       <td className="p-2 text-center text-xs text-gray-500 uppercase">{item.type === 'product' ? 'Peça' : 'Serviço'}</td>
+                                       <td className="p-2 text-right font-medium">R$ {item.total.toFixed(2)}</td>
+                                       <td className="p-2 text-center"><button type="button" onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td>
+                                    </tr>
+                                 ))}
+                              </tbody>
+                              <tfoot className="bg-gray-50 font-bold text-gray-800">
+                                 <tr>
+                                    <td colSpan={2} className="p-2 text-right">Total Estimado:</td>
+                                    <td className="p-2 text-right text-blue-600">R$ {totalValue.toFixed(2)}</td>
+                                    <td></td>
+                                 </tr>
+                              </tfoot>
+                           </table>
+                        </div>
+                     )}
                   </div>
 
-                  {/* Add Services */}
-                  <div className="bg-white p-4 rounded-xl border border-gray-200">
-                     <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2 text-sm"><Wrench size={16}/> Mão de Obra</h3>
-                     <div className="space-y-2">
-                        <select 
-                           className="input text-sm h-10" 
-                           value={selectedServiceId} 
-                           onChange={e => {
-                              setSelectedServiceId(e.target.value);
-                              const s = services.find(svc => svc.id === e.target.value);
-                              if (s) {
-                                 setServicePrice(s.price);
-                                 setServiceDescription(s.name);
-                              } else {
-                                 setServiceDescription(''); // Custom
-                              }
-                           }}
-                        >
-                           <option value="">+ Adicionar Serviço...</option>
-                           {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                           <option value="custom">Outro (Digitar)</option>
-                        </select>
-                        {selectedServiceId === 'custom' && (
-                           <input className="input text-sm h-10" placeholder="Descrição do serviço" value={serviceDescription} onChange={e => setServiceDescription(e.target.value)}/>
-                        )}
-                        <div className="flex gap-2">
-                           <div className="relative flex-1">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">R$</span>
-                              <input type="number" className="input text-sm pl-8 h-10 w-full" placeholder="Valor" value={servicePrice} onChange={e => setServicePrice(Number(e.target.value))}/>
-                           </div>
-                           <button type="button" onClick={handleAddService} className="bg-blue-600 text-white px-3 rounded-lg hover:bg-blue-700"><Plus size={18}/></button>
-                        </div>
-                     </div>
+                  <div className="md:col-span-4">
+                     <label className="label">Garantia</label>
+                     <select className="input" value={formData.warranty} onChange={e => setFormData({...formData, warranty: e.target.value})}>
+                        <option>Sem garantia</option>
+                        <option>30 Dias (Serviço)</option>
+                        <option>90 Dias (Peças e Mão de Obra)</option>
+                        <option>1 Ano (Fabricante)</option>
+                     </select>
                   </div>
                </div>
 
-               {/* Items Table Summary */}
-               {addedItems.length > 0 && (
-                  <div className="border border-gray-200 rounded-xl overflow-hidden">
-                     <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-100 text-gray-600 font-bold uppercase text-xs">
-                           <tr>
-                              <th className="p-3">Item</th>
-                              <th className="p-3 text-center">Tipo</th>
-                              <th className="p-3 text-right">Total</th>
-                              <th className="p-3 text-center"></th>
-                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
-                           {addedItems.map((item, idx) => (
-                              <tr key={idx}>
-                                 <td className="p-3">{item.name} <span className="text-gray-400 text-xs">x{item.quantity}</span></td>
-                                 <td className="p-3 text-center text-xs">
-                                    <span className={`px-2 py-1 rounded ${item.type === 'product' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                                       {item.type === 'product' ? 'Peça' : 'Serviço'}
-                                    </span>
-                                 </td>
-                                 <td className="p-3 text-right font-medium">R$ {item.total.toFixed(2)}</td>
-                                 <td className="p-3 text-center">
-                                    <button type="button" onClick={() => removeItem(idx)} className="text-gray-400 hover:text-red-600"><Trash2 size={16}/></button>
-                                 </td>
-                              </tr>
-                           ))}
-                        </tbody>
-                        <tfoot className="bg-gray-50 font-bold text-gray-800">
-                           <tr>
-                              <td colSpan={2} className="p-3 text-right">TOTAL:</td>
-                              <td className="p-3 text-right text-lg text-blue-700">R$ {totalValue.toFixed(2)}</td>
-                              <td></td>
-                           </tr>
-                        </tfoot>
-                     </table>
-                  </div>
-               )}
-
-               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                  <label className="label">Termo de Garantia</label>
-                  <select className="input bg-white" value={formData.warranty} onChange={e => setFormData({...formData, warranty: e.target.value})}>
-                     <option>Sem garantia</option>
-                     <option>30 Dias (Serviço)</option>
-                     <option>90 Dias (Peças e Mão de Obra)</option>
-                     <option>1 Ano (Fabricante)</option>
-                  </select>
-               </div>
-
-               <div className="flex justify-end pt-6 border-t border-gray-100 gap-3 shrink-0">
-                  <button type="button" onClick={handleCloseModal} className="px-6 py-3 rounded-lg font-medium text-gray-600 hover:bg-gray-100">Cancelar</button>
-                  <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2">
-                     <CheckCircle size={20}/>
-                     {editingOS ? 'Salvar Alterações' : 'Gerar Ordem de Serviço'}
+               <div className="flex justify-end pt-4 border-t border-gray-100 gap-3">
+                  <button type="button" onClick={handleCloseModal} className="px-6 py-2.5 rounded-lg font-bold text-gray-600 hover:bg-gray-100 border border-gray-200">Cancelar</button>
+                  <button type="submit" className="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-blue-700 shadow-md flex items-center gap-2">
+                     <CheckCircle size={18}/> {editingOS ? 'Salvar Alterações' : 'Criar Ordem de Serviço'}
                   </button>
                </div>
             </form>
          </div>
+         
+         <style>{`
+            .label { @apply block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1; }
+            .input { @apply w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm text-gray-700 bg-white; }
+         `}</style>
       </div>
      );
   };
