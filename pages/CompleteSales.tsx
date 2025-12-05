@@ -40,8 +40,8 @@ export const CompleteSales: React.FC = () => {
     const client = customers.find(c => c.id === printingSale.customerId);
 
     return (
-       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:fixed print:inset-0 print:z-[9999] print:bg-white print:p-0 print:block">
-          <div className="bg-white w-full max-w-4xl min-h-[90vh] shadow-2xl overflow-hidden flex flex-col print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible print:absolute print:top-0 print:left-0">
+       <div id="sales-print-modal" className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white w-full max-w-4xl min-h-[90vh] shadow-2xl overflow-hidden flex flex-col print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible">
               
               {/* Header Actions (Hidden on Print) */}
               <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden sticky top-0 z-10 shrink-0">
@@ -50,7 +50,7 @@ export const CompleteSales: React.FC = () => {
               </div>
 
               {/* Printable Content */}
-              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs">
+              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs print:overflow-visible">
                  
                  {/* Header */}
                  <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">
@@ -653,6 +653,31 @@ export const CompleteSales: React.FC = () => {
        <style>{`
           .label { @apply block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1; }
           .input { @apply w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow; }
+          
+          @media print {
+            body * {
+               visibility: hidden;
+            }
+            #sales-print-modal, #sales-print-modal * {
+               visibility: visible;
+            }
+            #sales-print-modal {
+               position: absolute;
+               left: 0;
+               top: 0;
+               width: 100%;
+               height: 100%;
+               margin: 0;
+               padding: 0;
+               background: white;
+               z-index: 9999;
+               overflow: visible !important;
+            }
+            #sales-print-modal > div {
+               height: auto !important;
+               overflow: visible !important;
+            }
+         }
        `}</style>
     </div>
   );
