@@ -5,7 +5,7 @@ import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, Transa
 import { 
   Plus, Search, BrainCircuit, CheckCircle, Clock, FileText, X, 
   Calendar, BarChart3, Wrench, Package, ShoppingCart, Filter, QrCode, 
-  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3, Edit
+  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3, Edit, DollarSign
 } from 'lucide-react';
 import { analyzeTechnicalIssue } from '../services/geminiService';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
@@ -121,6 +121,9 @@ export const ServiceOrders: React.FC = () => {
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [printingOS, setPrintingOS] = useState<ServiceOrder | null>(null);
   const [editingOS, setEditingOS] = useState<ServiceOrder | null>(null);
+  
+  // Finish OS Modal State
+  const [finishModalOSId, setFinishModalOSId] = useState<string | null>(null);
   
   // URL Params for quick actions
   const [searchParams, setSearchParams] = useSearchParams();
@@ -347,6 +350,11 @@ export const ServiceOrders: React.FC = () => {
                              <span>Total</span>
                              <span>R$ {printingOS.totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                           </div>
+                          {printingOS.paymentMethod && (
+                             <div className="text-right text-xs text-gray-500">
+                                Pago via {printingOS.paymentMethod}
+                             </div>
+                          )}
                        </div>
                     </div>
                  </div>
@@ -492,9 +500,8 @@ export const ServiceOrders: React.FC = () => {
 
      const handleStatusChange = (id: string, newStatus: OSStatus) => {
         if (newStatus === OSStatus.FINALIZADO) {
-           if (!confirm('Ao finalizar, o valor total da OS será lançado no financeiro como receita. Deseja continuar?')) {
-              return;
-           }
+           setFinishModalOSId(id);
+           return;
         }
         updateServiceOrder(id, { status: newStatus });
      };
@@ -637,6 +644,52 @@ export const ServiceOrders: React.FC = () => {
   };
 
   // --- Modals ---
+
+  const FinishOSModal = () => {
+     const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
+     const os = serviceOrders.find(o => o.id === finishModalOSId);
+
+     const handleConfirm = () => {
+        if (finishModalOSId) {
+           updateServiceOrder(finishModalOSId, { status: OSStatus.FINALIZADO, paymentMethod });
+           setFinishModalOSId(null);
+        }
+     };
+
+     if (!os) return null;
+
+     return (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+           <div className="bg-white rounded-xl w-full max-w-sm p-6 shadow-2xl">
+              <h2 className="text-lg font-bold text-gray-800 mb-2">Finalizar Ordem de Serviço</h2>
+              <p className="text-sm text-gray-500 mb-4">Selecione a forma de pagamento para dar baixa na OS <strong>{os.id}</strong>. O valor de <strong>R$ {os.totalValue.toFixed(2)}</strong> será lançado no caixa.</p>
+              
+              <div className="space-y-3 mb-6">
+                 {['Dinheiro', 'Pix', 'Cartão de Crédito', 'Cartão de Débito'].map(method => (
+                    <label key={method} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${paymentMethod === method ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                       <input 
+                          type="radio" 
+                          name="paymentMethod" 
+                          value={method} 
+                          checked={paymentMethod === method}
+                          onChange={(e) => setPaymentMethod(e.target.value)}
+                          className="text-green-600 focus:ring-green-500"
+                       />
+                       <span className={`font-medium ${paymentMethod === method ? 'text-green-800' : 'text-gray-700'}`}>{method}</span>
+                    </label>
+                 ))}
+              </div>
+
+              <div className="flex justify-end gap-2">
+                 <button onClick={() => setFinishModalOSId(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                 <button onClick={handleConfirm} className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 flex items-center gap-2">
+                    <DollarSign size={16}/> Confirmar e Finalizar
+                 </button>
+              </div>
+           </div>
+        </div>
+     );
+  };
 
   const NewOSModal = () => {
      // Form State
@@ -1151,6 +1204,7 @@ export const ServiceOrders: React.FC = () => {
        {/* Floating Modals */}
        {isModalOpen && <NewOSModal />}
        {isPurchaseModalOpen && <NewPurchaseModal />}
+       {finishModalOSId && <FinishOSModal />}
        
        {/* Print Modal Overlay */}
        <OSPrintModal />

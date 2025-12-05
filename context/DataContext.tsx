@@ -262,7 +262,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                amount: finalTotal,
                type: TransactionType.INCOME,
                date: new Date().toISOString(),
-               category: 'Serviços de Assistência'
+               category: 'Serviços de Assistência',
+               transactionDetails: {
+                  customerName: os.customerName,
+                  paymentMethod: updates.paymentMethod || 'Dinheiro', // Capture payment method here
+                  items: [] // Could populate with OS items if structure matched CartItem perfectly
+               }
              };
              setTimeout(() => {
                 setTransactions(curr => [newTransaction, ...curr]);

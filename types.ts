@@ -113,6 +113,7 @@ export interface ServiceOrder {
   technicalNotes?: string;
   items: OSItem[]; // Combined list of products and services
   supplies?: Supply[]; // Internal supplies used (optional tracking)
+  paymentMethod?: string; // Method used when finalized
 }
 
 export interface TransactionDetails {
