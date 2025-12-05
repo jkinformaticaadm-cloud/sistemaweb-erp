@@ -5,7 +5,7 @@ import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, Transa
 import { 
   Plus, Search, BrainCircuit, CheckCircle, Clock, FileText, X, 
   Calendar, BarChart3, Wrench, Package, ShoppingCart, Filter, QrCode, 
-  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3
+  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3, Edit
 } from 'lucide-react';
 import { analyzeTechnicalIssue } from '../services/geminiService';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
@@ -545,6 +545,13 @@ export const ServiceOrders: React.FC = () => {
                            <Clock size={14}/> {new Date(os.createdAt).toLocaleDateString()}
                         </div>
                         <div className="flex gap-2">
+                           <button 
+                              onClick={() => { setEditingOS(os); setIsModalOpen(true); }}
+                              className="text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 p-1.5 rounded-lg transition-colors shadow-sm"
+                              title="Editar OS"
+                           >
+                              <Edit size={18} />
+                           </button>
                            <button 
                               onClick={() => setPrintingOS(os)}
                               className="text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 p-1.5 rounded-lg transition-colors shadow-sm" 
