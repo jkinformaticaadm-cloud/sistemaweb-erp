@@ -5,7 +5,7 @@ import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, Transa
 import { 
   Plus, Search, BrainCircuit, CheckCircle, Clock, FileText, X, 
   Calendar, BarChart3, Wrench, Package, ShoppingCart, Filter, QrCode, 
-  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3, Edit, DollarSign
+  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3, Edit, DollarSign, Download
 } from 'lucide-react';
 import { analyzeTechnicalIssue } from '../services/geminiService';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
@@ -196,21 +196,16 @@ export const ServiceOrders: React.FC = () => {
 
     return (
        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:fixed print:inset-0 print:z-[9999] print:bg-white print:p-0 print:block">
-          <div className="bg-white w-full max-w-4xl min-h-[90vh] shadow-2xl overflow-y-auto print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible print:absolute print:top-0 print:left-0">
+          <div className="bg-white w-full max-w-4xl max-h-[95vh] shadow-2xl overflow-hidden flex flex-col print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible print:absolute print:top-0 print:left-0">
               
               {/* Header Actions (Hidden on Print) */}
-              <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden sticky top-0 z-10">
+              <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden shrink-0">
                  <h2 className="font-bold flex items-center gap-2"><Printer size={20}/> Visualização de Impressão</h2>
-                 <div className="flex gap-2">
-                    <button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2">
-                       <Printer size={18}/> Imprimir
-                    </button>
-                    <button onClick={() => setPrintingOS(null)} className="hover:text-gray-300"><X size={24}/></button>
-                 </div>
+                 <button onClick={() => setPrintingOS(null)} className="hover:text-gray-300"><X size={24}/></button>
               </div>
 
               {/* Printable Content (A4 Style) */}
-              <div className="p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs">
+              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs">
                  
                  {/* 1. Header */}
                  <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">
@@ -378,6 +373,16 @@ export const ServiceOrders: React.FC = () => {
                        </div>
                     </div>
                  </div>
+              </div>
+
+              {/* Footer Actions (Hidden on Print) */}
+              <div className="bg-gray-100 p-4 border-t border-gray-200 flex justify-end gap-4 print:hidden shrink-0">
+                 <button onClick={handlePrint} className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
+                    <Download size={18}/> Baixar PDF
+                 </button>
+                 <button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-colors">
+                    <Printer size={18}/> Imprimir
+                 </button>
               </div>
           </div>
        </div>

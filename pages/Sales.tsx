@@ -6,7 +6,7 @@ import {
   ShoppingCart, Plus, Minus, Trash2, Search, Zap, User, Package, Calendar, Clock, 
   CreditCard, Printer, CheckCircle, X, FileText, ArrowLeft, ChevronRight, 
   Monitor, Settings, LogOut, DollarSign, TrendingUp, TrendingDown, Lock, Unlock, Barcode,
-  PieChart, Eye, Receipt, Undo2, Coins
+  PieChart, Eye, Receipt, Undo2, Coins, Download
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
@@ -1132,32 +1132,42 @@ export const Sales: React.FC = () => {
                      <Printer size={20} />
                      <h2 className="font-bold text-lg">Comprovante de Venda</h2>
                   </div>
-                  <div className="flex items-center gap-3">
-                     <select 
-                        className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm outline-none"
-                        value={printFormat}
-                        onChange={e => setPrintFormat(e.target.value as any)}
-                     >
-                        <option value="a4">Papel A4 (Padrão)</option>
-                        <option value="thermal">Térmica (80mm/58mm)</option>
-                     </select>
-                     <button 
-                        onClick={handlePrintReceipt}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg font-bold text-sm flex items-center gap-2"
-                     >
-                        <Printer size={16}/> Imprimir
-                     </button>
-                     <button onClick={() => setIsReceiptModalOpen(false)} className="hover:text-gray-300 ml-2"><X size={24}/></button>
-                  </div>
+                  <button onClick={() => setIsReceiptModalOpen(false)} className="hover:text-gray-300 ml-2"><X size={24}/></button>
                </div>
 
                {/* Receipt Content Wrapper */}
-               <div className="overflow-y-auto bg-gray-100 p-8 flex justify-center print:p-0 print:bg-white print:overflow-visible">
+               <div className="overflow-y-auto bg-gray-100 p-8 flex justify-center print:p-0 print:bg-white print:overflow-visible flex-1">
                    <div className={`bg-white shadow-lg print:shadow-none transition-all duration-300 
                       ${printFormat === 'a4' ? 'w-full max-w-[210mm] min-h-[297mm] p-10 print:w-full print:max-w-none' : 'w-[80mm] min-h-[100mm] p-2 print:w-full'} 
                    `}>
                       <ReceiptContent />
                    </div>
+               </div>
+
+               {/* Footer with Controls (Hidden when printing) */}
+               <div className="bg-gray-100 p-4 border-t border-gray-200 flex justify-between items-center print:hidden sticky bottom-0 z-10 shrink-0">
+                  <select 
+                        className="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none shadow-sm"
+                        value={printFormat}
+                        onChange={e => setPrintFormat(e.target.value as any)}
+                     >
+                        <option value="a4">Papel A4 (Padrão)</option>
+                        <option value="thermal">Térmica (80mm/58mm)</option>
+                  </select>
+                  <div className="flex gap-3">
+                     <button 
+                        onClick={handlePrintReceipt}
+                        className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-50 shadow-sm transition-colors"
+                     >
+                        <Download size={16}/> Baixar PDF
+                     </button>
+                     <button 
+                        onClick={handlePrintReceipt}
+                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-sm transition-colors"
+                     >
+                        <Printer size={16}/> Imprimir
+                     </button>
+                  </div>
                </div>
             </div>
          </div>
