@@ -18,6 +18,22 @@ export const CompleteSales: React.FC = () => {
   const [printingSale, setPrintingSale] = useState<SalesOrder | null>(null);
   const [editingSale, setEditingSale] = useState<SalesOrder | null>(null);
 
+  // --- Handle ESC Key ---
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (printingSale) {
+            setPrintingSale(null);
+        } else if (isModalOpen) {
+            setIsModalOpen(false);
+            setEditingSale(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [printingSale, isModalOpen]);
+
   // --- Printing Component ---
   const SalePrintModal = () => {
     if (!printingSale) return null;

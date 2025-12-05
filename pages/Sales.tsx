@@ -74,6 +74,27 @@ export const Sales: React.FC = () => {
   // --- Helpers ---
   const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+  // --- Handle ESC Key to Close Modals ---
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isReceiptModalOpen) {
+           setIsReceiptModalOpen(false);
+        } else if (transactionToRefund) {
+           setTransactionToRefund(null);
+        } else if (isStockModalOpen) {
+           setIsStockModalOpen(false);
+        } else if (isSummaryModalOpen) {
+           setIsSummaryModalOpen(false);
+        } else if (isCashierModalOpen) {
+           setIsCashierModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isReceiptModalOpen, transactionToRefund, isStockModalOpen, isSummaryModalOpen, isCashierModalOpen]);
+
   const filteredProducts = useMemo(() => {
     if (!searchTerm) return [];
     return products.filter(p => 
