@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 
 export const Dashboard: React.FC = () => {
-  const { transactions, customers, serviceOrders } = useData();
+  const { transactions, customers, serviceOrders, financialGoals } = useData();
   const [chartPeriod, setChartPeriod] = useState<'week' | 'month'>('week');
 
   // --- Statistics Calculation ---
@@ -71,7 +71,7 @@ export const Dashboard: React.FC = () => {
         });
       }
     } else {
-      // Current Month (by weeks roughly or days) - let's do days of current month
+      // Current Month (by days)
       const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
       for (let i = 1; i <= daysInMonth; i++) {
          // Only show up to today to avoid empty space if preferred, or show all
@@ -93,11 +93,12 @@ export const Dashboard: React.FC = () => {
     return data;
   }, [transactions, chartPeriod]);
 
-  // --- Goals Logic (Mocked for Demo) ---
-  const goals = {
-    weekly: 5000,
-    monthly: 20000
-  };
+  // --- Goals Logic (Synchronized with Financial Module) ---
+  const goals = useMemo(() => ({
+    // Derived weekly goal (Monthly / 4)
+    weekly: financialGoals.revenueGoal / 4,
+    monthly: financialGoals.revenueGoal
+  }), [financialGoals]);
   
   // Calculate Weekly Sales (Real)
   const currentWeeklySales = useMemo(() => {
@@ -110,8 +111,17 @@ export const Dashboard: React.FC = () => {
       .reduce((acc, t) => acc + t.amount, 0);
   }, [transactions]);
 
-  const weeklyProgress = Math.min(100, (currentWeeklySales / goals.weekly) * 100);
-  const monthlyProgress = Math.min(100, (stats.salesMonth / goals.monthly) * 100);
+  const weeklyProgress = goals.weekly > 0 ? Math.min(100, (currentWeeklySales / goals.weekly) * 100) : 0;
+  const monthlyProgress = goals.monthly > 0 ? Math.min(100, (stats.salesMonth / goals.monthly) * 100) : 0;
+
+  // Tip Calculation
+  const daysRemainingInMonth = useMemo(() => {
+     const now = new Date();
+     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+     return Math.max(1, daysInMonth - now.getDate());
+  }, []);
+
+  const neededPerDay = Math.max(0, (goals.monthly - stats.salesMonth) / daysRemainingInMonth);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -266,15 +276,18 @@ export const Dashboard: React.FC = () => {
          {/* Goals Section */}
          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
             <div>
-               <h3 className="font-bold text-gray-800 text-lg mb-6 flex items-center gap-2">
-                  <Target className="text-red-500"/> Metas Financeiras
-               </h3>
+               <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
+                     <Target className="text-red-500"/> Metas Financeiras
+                  </h3>
+                  <Link to="/financeiro" className="text-xs font-bold text-blue-600 hover:underline">Configurar</Link>
+               </div>
 
                {/* Weekly Goal */}
                <div className="mb-8">
                   <div className="flex justify-between items-end mb-2">
                      <div>
-                        <p className="text-xs font-bold text-gray-500 uppercase">Meta Semanal</p>
+                        <p className="text-xs font-bold text-gray-500 uppercase">Meta Semanal (Est.)</p>
                         <p className="text-lg font-bold text-gray-800">R$ {currentWeeklySales.toLocaleString('pt-BR')} <span className="text-gray-400 text-sm font-normal">/ {goals.weekly.toLocaleString('pt-BR')}</span></p>
                      </div>
                      <span className="text-sm font-bold text-blue-600">{weeklyProgress.toFixed(0)}%</span>
@@ -307,7 +320,13 @@ export const Dashboard: React.FC = () => {
 
             <div className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-200">
                <p className="text-xs text-gray-500 mb-2 font-bold uppercase">Dica do sistema</p>
-               <p className="text-sm text-gray-600">Para alcançar a meta mensal, você precisa vender uma média de <span className="font-bold text-gray-900">R$ {((goals.monthly - stats.salesMonth) / 15).toFixed(2)}</span> por dia nos próximos 15 dias.</p>
+               {neededPerDay > 0 ? (
+                  <p className="text-sm text-gray-600">
+                     Para alcançar a meta mensal, você precisa vender uma média de <span className="font-bold text-gray-900">R$ {neededPerDay.toFixed(2)}</span> por dia nos próximos {daysRemainingInMonth} dias.
+                  </p>
+               ) : (
+                  <p className="text-sm text-green-700 font-bold">Parabéns! Você já atingiu a meta mensal.</p>
+               )}
             </div>
          </div>
       </div>
