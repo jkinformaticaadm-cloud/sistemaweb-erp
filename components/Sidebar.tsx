@@ -1,12 +1,13 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Wrench, Users, Package, PieChart, Settings, LogOut, BookOpen } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Wrench, Users, Package, PieChart, Settings, LogOut, BookOpen, FileBadge } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const links = [
     { to: "/", icon: <LayoutDashboard size={20} />, label: "Dashboard" },
-    { to: "/vendas", icon: <ShoppingCart size={20} />, label: "Vendas / PDV" },
+    { to: "/vendas", icon: <ShoppingCart size={20} />, label: "PDV Rápido" },
+    { to: "/vendas-completas", icon: <FileBadge size={20} />, label: "Venda Completa" },
     { to: "/os", icon: <Wrench size={20} />, label: "Ordens de Serviço" },
     { to: "/clientes", icon: <Users size={20} />, label: "Clientes" },
     { to: "/produtos", icon: <Package size={20} />, label: "Produtos" },

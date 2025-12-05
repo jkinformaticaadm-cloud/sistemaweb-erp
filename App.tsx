@@ -5,6 +5,7 @@ import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { ServiceOrders } from './pages/ServiceOrders';
 import { Sales } from './pages/Sales';
+import { CompleteSales } from './pages/CompleteSales';
 import { Customers } from './pages/Customers';
 import { Products } from './pages/Products';
 import { Financial } from './pages/Financial';
@@ -45,6 +46,7 @@ const App: React.FC = () => {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/vendas" element={<Sales />} />
+                <Route path="/vendas-completas" element={<CompleteSales />} />
                 <Route path="/os" element={<ServiceOrders />} />
                 <Route path="/clientes" element={<Customers />} />
                 <Route path="/produtos" element={<Products />} />

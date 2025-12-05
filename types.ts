@@ -19,7 +19,8 @@ export enum OrderStatus {
   PENDING = 'Pendente',
   READY = 'Pronto',
   DELIVERED = 'Entregue',
-  CANCELLED = 'Cancelado'
+  CANCELLED = 'Cancelado',
+  FINISHED = 'Finalizado'
 }
 
 export interface Customer {
@@ -140,11 +141,18 @@ export interface SalesOrder {
   id: string;
   customerId: string;
   customerName: string;
-  items: CartItem[];
-  total: number;
+  // Detailed fields matching OS structure
+  device?: string;
+  imei?: string;
+  serialNumber?: string;
+  description?: string; // Observations
+  items: OSItem[]; // Using OSItem for consistency with detailed forms
+  totalValue: number;
   status: OrderStatus;
   createdAt: string;
   deliveryDate?: string;
+  warranty?: string;
+  technicalNotes?: string;
 }
 
 export interface InstallmentRate {
