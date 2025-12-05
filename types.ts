@@ -100,6 +100,8 @@ export interface ServiceOrder {
   device: string;
   imei?: string;
   serialNumber?: string;
+  devicePassword?: string; // Text Password/PIN
+  patternPassword?: string; // Sequence of points e.g. "0,1,2,5,8"
   description: string;
   aiDiagnosis?: string;
   status: OSStatus;

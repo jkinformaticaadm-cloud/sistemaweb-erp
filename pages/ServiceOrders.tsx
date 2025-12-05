@@ -5,13 +5,110 @@ import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, Transa
 import { 
   Plus, Search, BrainCircuit, CheckCircle, Clock, FileText, X, 
   Calendar, BarChart3, Wrench, Package, ShoppingCart, Filter, QrCode, 
-  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2
+  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3
 } from 'lucide-react';
 import { analyzeTechnicalIssue } from '../services/geminiService';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { useSearchParams } from 'react-router-dom';
 
 type OSTab = 'dashboard' | 'list' | 'supplies' | 'services' | 'purchases';
+
+// Helper Component for Pattern Lock Display/Input
+const PatternLock = ({ 
+   value = '', 
+   onChange, 
+   readOnly = false,
+   size = 120 
+}: { 
+   value?: string, 
+   onChange?: (val: string) => void, 
+   readOnly?: boolean,
+   size?: number
+}) => {
+   const [points, setPoints] = useState<number[]>([]);
+
+   useEffect(() => {
+      if (value) {
+         setPoints(value.split(',').map(Number));
+      } else {
+         setPoints([]);
+      }
+   }, [value]);
+
+   const handlePointClick = (index: number) => {
+      if (readOnly || !onChange) return;
+      
+      const existingIndex = points.indexOf(index);
+      let newPoints = [...points];
+
+      if (existingIndex !== -1) {
+         // If clicking the last point, remove it (undo)
+         if (existingIndex === points.length - 1) {
+            newPoints.pop();
+         } else {
+            // Reset if clicking middle
+            newPoints = []; 
+         }
+      } else {
+         newPoints.push(index);
+      }
+      
+      setPoints(newPoints);
+      onChange(newPoints.join(','));
+   };
+
+   // Coordinates for 3x3 grid (0-8)
+   const getCoord = (index: number) => {
+      const row = Math.floor(index / 3);
+      const col = index % 3;
+      return { x: 20 + col * 30, y: 20 + row * 30 };
+   };
+
+   // SVG Path
+   const pathData = points.map((p, i) => {
+      const c = getCoord(p);
+      return `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`;
+   }).join(' ');
+
+   return (
+      <div className="relative select-none" style={{ width: size, height: size }}>
+         <svg viewBox="0 0 100 100" className="w-full h-full bg-white rounded-lg border border-gray-200">
+            {/* Lines */}
+            <path d={pathData} stroke="#3b82f6" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            
+            {/* Dots */}
+            {Array.from({ length: 9 }).map((_, i) => {
+               const c = getCoord(i);
+               const isSelected = points.includes(i);
+               const isLast = points[points.length - 1] === i;
+               
+               return (
+                  <circle 
+                     key={i} 
+                     cx={c.x} 
+                     cy={c.y} 
+                     r={readOnly ? 4 : 6}
+                     fill={isSelected ? '#3b82f6' : '#e5e7eb'}
+                     stroke={isLast ? '#1d4ed8' : 'none'}
+                     strokeWidth={2}
+                     className={readOnly ? '' : 'cursor-pointer hover:fill-blue-400 transition-colors'}
+                     onClick={() => handlePointClick(i)}
+                  />
+               );
+            })}
+         </svg>
+         {!readOnly && (
+            <button 
+               type="button"
+               onClick={() => { setPoints([]); if(onChange) onChange(''); }}
+               className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-red-500 font-bold uppercase hover:underline"
+            >
+               Limpar
+            </button>
+         )}
+      </div>
+   );
+};
 
 export const ServiceOrders: React.FC = () => {
   const { 
@@ -155,11 +252,19 @@ export const ServiceOrders: React.FC = () => {
                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
                           <Smartphone size={16}/> Dados do Aparelho
                        </h3>
-                       <div className="space-y-1 text-sm">
-                          <p><span className="font-bold">Equipamento:</span> {printingOS.device}</p>
-                          <p><span className="font-bold">IMEI:</span> {printingOS.imei || '-'}</p>
-                          <p><span className="font-bold">Nº Série:</span> {printingOS.serialNumber || '-'}</p>
-                          <p><span className="font-bold">Garantia:</span> {printingOS.warranty || 'Consultar termos'}</p>
+                       <div className="flex gap-4">
+                          <div className="space-y-1 text-sm flex-1">
+                             <p><span className="font-bold">Equipamento:</span> {printingOS.device}</p>
+                             <p><span className="font-bold">IMEI:</span> {printingOS.imei || '-'}</p>
+                             <p><span className="font-bold">Nº Série:</span> {printingOS.serialNumber || '-'}</p>
+                             <p><span className="font-bold">Senha (PIN):</span> {printingOS.devicePassword || 'Não informada'}</p>
+                          </div>
+                          {printingOS.patternPassword && (
+                             <div className="border border-gray-200 rounded p-1">
+                                <p className="text-[10px] text-center text-gray-500 mb-1">Padrão</p>
+                                <PatternLock value={printingOS.patternPassword} readOnly size={60} />
+                             </div>
+                          )}
                        </div>
                     </div>
                  </div>
@@ -420,7 +525,6 @@ export const ServiceOrders: React.FC = () => {
                   <div className="p-5 flex-1 cursor-pointer" onClick={() => { setEditingOS(os); setIsModalOpen(true); }}>
                      <div className="flex justify-between items-start mb-3">
                         <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{os.id}</span>
-                        {/* Status is now a dropdown below, but keep a static badge here for quick view if needed, or remove. Let's remove and rely on bottom bar */}
                      </div>
                      <h3 className="font-bold text-lg text-gray-800 mb-1">{os.device}</h3>
                      <p className="text-gray-600 text-sm mb-4 flex items-center gap-1"><Users size={14}/> {os.customerName}</p>
@@ -534,6 +638,8 @@ export const ServiceOrders: React.FC = () => {
         device: '',
         imei: '',
         serialNumber: '',
+        devicePassword: '',
+        patternPassword: '',
         description: '',
         priority: 'Média',
         warranty: '90 Dias (Peças e Mão de Obra)',
@@ -639,6 +745,8 @@ export const ServiceOrders: React.FC = () => {
            device: formData.device || '',
            imei: formData.imei,
            serialNumber: formData.serialNumber,
+           devicePassword: formData.devicePassword,
+           patternPassword: formData.patternPassword,
            description: formData.description || '',
            status: formData.status || OSStatus.PENDENTE,
            priority: formData.priority as any,
@@ -693,10 +801,10 @@ export const ServiceOrders: React.FC = () => {
 
                <hr className="border-gray-100" />
 
-               {/* Section 2: Device Data */}
+               {/* Section 2: Device Data with Passwords */}
                <div>
                   <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">Dados do Equipamento</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                      <div>
                         <label className="label">Modelo</label>
                         <input required className="input" placeholder="Ex: iPhone 11" value={formData.device} onChange={e => setFormData({...formData, device: e.target.value})}/>
@@ -708,6 +816,18 @@ export const ServiceOrders: React.FC = () => {
                      <div>
                         <label className="label">Nº de Série</label>
                         <input className="input" placeholder="Serial Number" value={formData.serialNumber} onChange={e => setFormData({...formData, serialNumber: e.target.value})}/>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                     <div className="md:col-span-2">
+                        <label className="label flex items-center gap-1"><Lock size={14}/> Senha do Dispositivo (Texto/PIN)</label>
+                        <input className="input" placeholder="Ex: 1234 ou Texto" value={formData.devicePassword} onChange={e => setFormData({...formData, devicePassword: e.target.value})}/>
+                     </div>
+                     <div className="flex flex-col items-center">
+                        <label className="label flex items-center gap-1 mb-2"><Grid3X3 size={14}/> Senha Padrão</label>
+                        <PatternLock value={formData.patternPassword} onChange={(val) => setFormData({...formData, patternPassword: val})} />
+                        <p className="text-[10px] text-gray-400 mt-1">Clique nos pontos na ordem</p>
                      </div>
                   </div>
                </div>

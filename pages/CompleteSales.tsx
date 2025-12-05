@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { SalesOrder, OrderStatus, OSItem, Transaction, TransactionType } from '../types';
 import { 
   Plus, Search, FileText, X, Package, ShoppingBag, 
-  Printer, Smartphone, User, Trash2, Edit, MessageCircle, DollarSign, CreditCard
+  Printer, Smartphone, User, Trash2, Edit, MessageCircle, DollarSign, CreditCard, ShieldCheck
 } from 'lucide-react';
 
 export const CompleteSales: React.FC = () => {
@@ -108,12 +108,25 @@ export const CompleteSales: React.FC = () => {
                     </div>
                  </div>
 
-                 {/* Observations */}
-                 <div className="border border-gray-300 rounded-lg p-4">
-                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
-                       Observações / Descrição
-                    </h3>
-                    <p className="text-sm whitespace-pre-wrap min-h-[20px]">{printingSale.description || 'Sem observações.'}</p>
+                 {/* Observations & Warranty */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border border-gray-300 rounded-lg p-4">
+                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                        Observações / Descrição
+                        </h3>
+                        <p className="text-sm whitespace-pre-wrap min-h-[40px]">{printingSale.description || 'Sem observações.'}</p>
+                    </div>
+                    <div className="border border-gray-300 rounded-lg p-4">
+                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg flex items-center gap-2">
+                           <ShieldCheck size={16}/> Termos de Garantia
+                        </h3>
+                        <p className="text-sm">
+                           Garantia Aplicada: <span className="font-bold text-gray-900">{printingSale.warranty}</span>
+                        </p>
+                        <p className="text-[10px] text-gray-500 mt-2 text-justify leading-tight">
+                           A garantia cobre defeitos de fabricação e funcionamento das peças substituídas ou produtos vendidos. Não cobre danos causados por mau uso, quedas, contato com líquidos ou oxidação.
+                        </p>
+                    </div>
                  </div>
 
                  {/* Financials */}
@@ -170,6 +183,7 @@ export const CompleteSales: React.FC = () => {
      const [productQty, setProductQty] = useState(1);
      const [productPrice, setProductPrice] = useState(0);
      const [productImeiInput, setProductImeiInput] = useState(''); // Manual IMEI input
+     const [productColor, setProductColor] = useState(''); // Manual Color input
 
      // Credit Card Logic
      const [selectedPaymentBase, setSelectedPaymentBase] = useState(''); // Holds 'Dinheiro', 'Crédito', etc.
@@ -205,9 +219,14 @@ export const CompleteSales: React.FC = () => {
         if (prod) {
            let detailString = '';
            const specs = [];
+           
            if (prod.brand) specs.push(prod.brand);
            if (prod.model) specs.push(prod.model);
-           if (prod.color) specs.push(prod.color);
+           
+           // Color Logic: Use manual input if provided, else product default
+           if (productColor) specs.push(`Cor: ${productColor}`);
+           else if (prod.color) specs.push(prod.color);
+
            if (prod.storage) specs.push(prod.storage);
            if (prod.condition) specs.push(prod.condition);
            
@@ -228,10 +247,12 @@ export const CompleteSales: React.FC = () => {
               type: 'product'
            });
            
+           // Reset fields
            setSelectedProductId('');
            setProductQty(1);
            setProductPrice(0);
            setProductImeiInput('');
+           setProductColor('');
         }
      };
 
@@ -335,35 +356,43 @@ export const CompleteSales: React.FC = () => {
                {/* Items Section */}
                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                   <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2"><Package size={18}/> Adicionar Itens</h3>
-                  <div className="flex flex-col md:flex-row gap-2 items-end">
-                     <div className="flex-1 w-full">
-                        <label className="label">Produto</label>
-                        <select 
-                           className="input text-sm" 
-                           value={selectedProductId} 
-                           onChange={e => {
-                              setSelectedProductId(e.target.value);
-                              const p = products.find(prod => prod.id === e.target.value);
-                              if (p) setProductPrice(p.price);
-                           }}
-                        >
-                           <option value="">Selecione...</option>
-                           {products.map(p => <option key={p.id} value={p.id}>{p.name} (Est: {p.stock})</option>)}
-                        </select>
+                  <div className="flex flex-col gap-3">
+                     <div className="flex flex-col md:flex-row gap-2">
+                        <div className="flex-1 w-full">
+                           <label className="label">Produto</label>
+                           <select 
+                              className="input text-sm" 
+                              value={selectedProductId} 
+                              onChange={e => {
+                                 setSelectedProductId(e.target.value);
+                                 const p = products.find(prod => prod.id === e.target.value);
+                                 if (p) setProductPrice(p.price);
+                              }}
+                           >
+                              <option value="">Selecione...</option>
+                              {products.map(p => <option key={p.id} value={p.id}>{p.name} (Est: {p.stock})</option>)}
+                           </select>
+                        </div>
+                        <div className="w-full md:w-32">
+                           <label className="label">Cor</label>
+                           <input className="input text-sm" placeholder="Ex: Preto" value={productColor} onChange={e => setProductColor(e.target.value)} />
+                        </div>
+                        <div className="w-full md:w-48">
+                           <label className="label">IMEI/Serial (Opcional)</label>
+                           <input className="input text-sm" placeholder="Ex: 3544..." value={productImeiInput} onChange={e => setProductImeiInput(e.target.value)} />
+                        </div>
                      </div>
-                     <div className="w-full md:w-48">
-                        <label className="label">IMEI/Serial (Opcional)</label>
-                        <input className="input text-sm" placeholder="Ex: 3544..." value={productImeiInput} onChange={e => setProductImeiInput(e.target.value)} />
+                     <div className="flex gap-2 items-end">
+                        <div className="w-20">
+                           <label className="label">Qtd</label>
+                           <input type="number" className="input text-sm" value={productQty} onChange={e => setProductQty(Number(e.target.value))}/>
+                        </div>
+                        <div className="w-32">
+                           <label className="label">Valor (R$)</label>
+                           <input type="number" className="input text-sm" value={productPrice} onChange={e => setProductPrice(Number(e.target.value))}/>
+                        </div>
+                        <button type="button" onClick={handleAddProduct} className="bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 mb-0.5 flex-1 md:flex-none"><Plus size={20}/></button>
                      </div>
-                     <div className="w-20">
-                        <label className="label">Qtd</label>
-                        <input type="number" className="input text-sm" value={productQty} onChange={e => setProductQty(Number(e.target.value))}/>
-                     </div>
-                     <div className="w-32">
-                        <label className="label">Valor (R$)</label>
-                        <input type="number" className="input text-sm" value={productPrice} onChange={e => setProductPrice(Number(e.target.value))}/>
-                     </div>
-                     <button type="button" onClick={handleAddProduct} className="bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 mb-0.5"><Plus size={20}/></button>
                   </div>
                </div>
 
