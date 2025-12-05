@@ -205,26 +205,26 @@ export const ServiceOrders: React.FC = () => {
               </div>
 
               {/* Printable Content (A4 Style) */}
-              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs">
+              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs print:overflow-visible print:h-auto print:block">
                  
                  {/* 1. Header */}
-                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">
+                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 print:text-black">
                     <div className="flex items-center gap-4">
                        <div className="w-16 h-16 bg-gray-800 text-white flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent">
                           TF
                        </div>
                        <div>
-                          <h1 className="text-2xl font-bold uppercase">{settings.companyName}</h1>
-                          <p className="text-sm">CNPJ: {settings.cnpj}</p>
-                          <p className="text-sm">{settings.address}</p>
-                          <p className="text-sm">Tel: {settings.phone} | Email: {settings.email}</p>
+                          <h1 className="text-2xl font-bold uppercase text-gray-900 print:text-black">{settings.companyName}</h1>
+                          <p className="text-sm text-gray-700 print:text-black">CNPJ: {settings.cnpj}</p>
+                          <p className="text-sm text-gray-700 print:text-black">{settings.address}</p>
+                          <p className="text-sm text-gray-700 print:text-black">Tel: {settings.phone} | Email: {settings.email}</p>
                        </div>
                     </div>
                     <div className="text-right">
-                       <h2 className="text-3xl font-bold text-gray-800">ORDEM DE SERVIÇO</h2>
-                       <p className="text-xl font-mono text-gray-600 mt-1">#{printingOS.id}</p>
-                       <p className="text-sm text-gray-500 mt-2">Data: {new Date(printingOS.createdAt).toLocaleDateString()} {new Date(printingOS.createdAt).toLocaleTimeString()}</p>
-                       <p className={`text-sm font-bold uppercase mt-1 px-2 py-0.5 inline-block rounded border ${printingOS.status === OSStatus.CONCLUIDO || printingOS.status === OSStatus.FINALIZADO ? 'border-green-600 text-green-800' : 'border-gray-400 text-gray-600'}`}>
+                       <h2 className="text-3xl font-bold text-gray-800 print:text-black">ORDEM DE SERVIÇO</h2>
+                       <p className="text-xl font-mono text-gray-600 mt-1 print:text-black">#{printingOS.id}</p>
+                       <p className="text-sm text-gray-500 mt-2 print:text-black">Data: {new Date(printingOS.createdAt).toLocaleDateString()} {new Date(printingOS.createdAt).toLocaleTimeString()}</p>
+                       <p className={`text-sm font-bold uppercase mt-1 px-2 py-0.5 inline-block rounded border ${printingOS.status === OSStatus.CONCLUIDO || printingOS.status === OSStatus.FINALIZADO ? 'border-green-600 text-green-800' : 'border-gray-400 text-gray-600'} print:border-black print:text-black`}>
                           {printingOS.status}
                        </p>
                     </div>
@@ -233,11 +233,11 @@ export const ServiceOrders: React.FC = () => {
                  {/* 2. Client & Device Grid */}
                  <div className="grid grid-cols-2 gap-8">
                     {/* Client Data */}
-                    <div className="border border-gray-300 rounded-lg p-4">
-                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                    <div className="border border-gray-300 rounded-lg p-4 print:border-black">
+                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black">
                           <User size={16}/> Dados do Cliente
                        </h3>
-                       <div className="space-y-1 text-sm">
+                       <div className="space-y-1 text-sm print:text-black">
                           <p><span className="font-bold">Nome:</span> {client?.name || printingOS.customerName}</p>
                           <p><span className="font-bold">CPF/CNPJ:</span> {client?.cpfOrCnpj || 'Não informado'}</p>
                           <p><span className="font-bold">Telefone:</span> {client?.phone}</p>
@@ -246,20 +246,20 @@ export const ServiceOrders: React.FC = () => {
                     </div>
 
                     {/* Device Data */}
-                    <div className="border border-gray-300 rounded-lg p-4">
-                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                    <div className="border border-gray-300 rounded-lg p-4 print:border-black">
+                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black">
                           <Smartphone size={16}/> Dados do Aparelho
                        </h3>
                        <div className="flex gap-4">
-                          <div className="space-y-1 text-sm flex-1">
+                          <div className="space-y-1 text-sm flex-1 print:text-black">
                              <p><span className="font-bold">Equipamento:</span> {printingOS.device}</p>
                              <p><span className="font-bold">IMEI:</span> {printingOS.imei || '-'}</p>
                              <p><span className="font-bold">Nº Série:</span> {printingOS.serialNumber || '-'}</p>
                              <p><span className="font-bold">Senha (PIN):</span> {printingOS.devicePassword || 'Não informada'}</p>
                           </div>
                           {printingOS.patternPassword && (
-                             <div className="border border-gray-200 rounded p-1">
-                                <p className="text-[10px] text-center text-gray-500 mb-1">Padrão</p>
+                             <div className="border border-gray-200 rounded p-1 print:border-black">
+                                <p className="text-[10px] text-center text-gray-500 mb-1 print:text-black">Padrão</p>
                                 <PatternLock value={printingOS.patternPassword} readOnly size={60} />
                              </div>
                           )}
@@ -268,15 +268,15 @@ export const ServiceOrders: React.FC = () => {
                  </div>
 
                  {/* 3. Defect / Diagnosis */}
-                 <div className="border border-gray-300 rounded-lg p-4">
-                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                 <div className="border border-gray-300 rounded-lg p-4 print:border-black">
+                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black">
                        Relato do Defeito / Diagnóstico
                     </h3>
-                    <p className="text-sm whitespace-pre-wrap min-h-[60px]">{printingOS.description}</p>
+                    <p className="text-sm whitespace-pre-wrap min-h-[60px] print:text-black">{printingOS.description}</p>
                     {printingOS.technicalNotes && (
-                       <div className="mt-4 pt-4 border-t border-dashed border-gray-300">
-                          <p className="text-xs font-bold text-gray-500 uppercase mb-1">Observações Técnicas:</p>
-                          <p className="text-sm italic text-gray-600">{printingOS.technicalNotes}</p>
+                       <div className="mt-4 pt-4 border-t border-dashed border-gray-300 print:border-black">
+                          <p className="text-xs font-bold text-gray-500 uppercase mb-1 print:text-black">Observações Técnicas:</p>
+                          <p className="text-sm italic text-gray-600 print:text-black">{printingOS.technicalNotes}</p>
                        </div>
                     )}
                  </div>
@@ -284,13 +284,13 @@ export const ServiceOrders: React.FC = () => {
                  {/* 4. Products & Services Details */}
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      {/* Products */}
-                     <div className="border border-gray-300 rounded-lg overflow-hidden">
-                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Peças / Produtos</div>
+                     <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black">
+                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Peças / Produtos</div>
                         <div className="p-0">
                            {productItems.length > 0 ? (
                               <table className="w-full text-xs">
                                  <thead>
-                                    <tr className="border-b border-gray-100 text-gray-400">
+                                    <tr className="border-b border-gray-100 text-gray-400 print:border-black print:text-black">
                                        <th className="p-2 text-left">Item</th>
                                        <th className="p-2 text-center">Qtd</th>
                                        <th className="p-2 text-right">Valor</th>
@@ -298,55 +298,55 @@ export const ServiceOrders: React.FC = () => {
                                  </thead>
                                  <tbody>
                                     {productItems.map((item, idx) => (
-                                       <tr key={idx} className="border-b border-gray-50 last:border-0">
-                                          <td className="p-2">{item.name}</td>
-                                          <td className="p-2 text-center">{item.quantity}</td>
-                                          <td className="p-2 text-right">R$ {item.total.toFixed(2)}</td>
+                                       <tr key={idx} className="border-b border-gray-50 last:border-0 print:border-gray-300">
+                                          <td className="p-2 print:text-black">{item.name}</td>
+                                          <td className="p-2 text-center print:text-black">{item.quantity}</td>
+                                          <td className="p-2 text-right print:text-black">R$ {item.total.toFixed(2)}</td>
                                        </tr>
                                     ))}
                                  </tbody>
                               </table>
-                           ) : <p className="p-4 text-center text-gray-400 text-xs">Nenhuma peça utilizada.</p>}
+                           ) : <p className="p-4 text-center text-gray-400 text-xs print:text-black">Nenhuma peça utilizada.</p>}
                         </div>
                      </div>
 
                      {/* Services */}
-                     <div className="border border-gray-300 rounded-lg overflow-hidden">
-                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Serviços Executados</div>
+                     <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black">
+                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Serviços Executados</div>
                         <div className="p-0">
                            {serviceItems.length > 0 ? (
                               <table className="w-full text-xs">
                                  <thead>
-                                    <tr className="border-b border-gray-100 text-gray-400">
+                                    <tr className="border-b border-gray-100 text-gray-400 print:border-black print:text-black">
                                        <th className="p-2 text-left">Serviço</th>
                                        <th className="p-2 text-right">Valor</th>
                                     </tr>
                                  </thead>
                                  <tbody>
                                     {serviceItems.map((item, idx) => (
-                                       <tr key={idx} className="border-b border-gray-50 last:border-0">
-                                          <td className="p-2">{item.name}</td>
-                                          <td className="p-2 text-right">R$ {item.total.toFixed(2)}</td>
+                                       <tr key={idx} className="border-b border-gray-50 last:border-0 print:border-gray-300">
+                                          <td className="p-2 print:text-black">{item.name}</td>
+                                          <td className="p-2 text-right print:text-black">R$ {item.total.toFixed(2)}</td>
                                        </tr>
                                     ))}
                                  </tbody>
                               </table>
-                           ) : <p className="p-4 text-center text-gray-400 text-xs">Nenhum serviço registrado.</p>}
+                           ) : <p className="p-4 text-center text-gray-400 text-xs print:text-black">Nenhum serviço registrado.</p>}
                         </div>
                      </div>
                  </div>
 
                  {/* 5. Financials */}
                  <div className="flex justify-end">
-                    <div className="w-1/2 border border-gray-300 rounded-lg overflow-hidden">
-                       <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Resumo Financeiro</div>
+                    <div className="w-1/2 border border-gray-300 rounded-lg overflow-hidden print:border-black">
+                       <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Resumo Financeiro</div>
                        <div className="p-4 space-y-2">
-                          <div className="flex justify-between text-lg font-bold pt-2 mt-2 text-gray-900">
+                          <div className="flex justify-between text-lg font-bold pt-2 mt-2 text-gray-900 print:text-black">
                              <span>Total</span>
                              <span>R$ {printingOS.totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                           </div>
                           {printingOS.paymentMethod && (
-                             <div className="text-right text-xs text-gray-500">
+                             <div className="text-right text-xs text-gray-500 print:text-black">
                                 Pago via {printingOS.paymentMethod}
                              </div>
                           )}
@@ -355,21 +355,21 @@ export const ServiceOrders: React.FC = () => {
                  </div>
 
                  {/* 6. Terms & Signature */}
-                 <div className="mt-8 pt-6 border-t-2 border-gray-800">
-                    <p className="text-xs text-gray-500 text-justify mb-8">
+                 <div className="mt-8 pt-6 border-t-2 border-gray-800 print:break-inside-avoid print:border-black">
+                    <p className="text-xs text-gray-500 text-justify mb-8 print:text-black">
                        <strong>Termos de Garantia:</strong> A garantia cobre apenas o serviço executado e as peças substituídas pelo prazo estipulado acima. Não cobrimos danos causados por mau uso, quedas, contato com líquidos ou intervenção de terceiros. Aparelhos não retirados em até 90 dias serão descartados ou vendidos para custear despesas (Lei 11.111).
                     </p>
 
                     <div className="grid grid-cols-2 gap-16 mt-16">
                        <div className="text-center">
                           <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
-                          <p className="text-sm font-bold uppercase">{client?.name || 'Assinatura do Cliente'}</p>
-                          <p className="text-xs text-gray-500">CPF: {client?.cpfOrCnpj || '_________________'}</p>
+                          <p className="text-sm font-bold uppercase print:text-black">{client?.name || 'Assinatura do Cliente'}</p>
+                          <p className="text-xs text-gray-500 print:text-black">CPF: {client?.cpfOrCnpj || '_________________'}</p>
                        </div>
                        <div className="text-center">
                           <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
-                          <p className="text-sm font-bold uppercase">{settings.companyName}</p>
-                          <p className="text-xs text-gray-500">Técnico Responsável</p>
+                          <p className="text-sm font-bold uppercase print:text-black">{settings.companyName}</p>
+                          <p className="text-xs text-gray-500 print:text-black">Técnico Responsável</p>
                        </div>
                     </div>
                  </div>
