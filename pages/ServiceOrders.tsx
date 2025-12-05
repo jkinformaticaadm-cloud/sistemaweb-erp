@@ -135,6 +135,20 @@ export const ServiceOrders: React.FC = () => {
      }
   }, [paramCustomerId]);
 
+  // Handle ESC key to close modals
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (printingOS) setPrintingOS(null);
+        else if (finishModalOSId) setFinishModalOSId(null);
+        else if (isPurchaseModalOpen) setIsPurchaseModalOpen(false);
+        else if (isModalOpen) handleCloseModal();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [printingOS, finishModalOSId, isPurchaseModalOpen, isModalOpen]);
+
   const handleCloseModal = () => {
      setIsModalOpen(false);
      setEditingOS(null);
@@ -204,63 +218,62 @@ export const ServiceOrders: React.FC = () => {
                  <button onClick={() => setPrintingOS(null)} className="hover:text-gray-300"><X size={24}/></button>
               </div>
 
-              {/* Printable Content (A4 Style) */}
-              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs print:overflow-visible print:h-auto print:block">
+              {/* Printable Content (Compact for Single Page) */}
+              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-4 print:space-y-3 print:text-xs print:overflow-visible print:h-auto print:block">
                  
-                 {/* 1. Header */}
-                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 print:text-black">
-                    <div className="flex items-center gap-4">
-                       <div className="w-16 h-16 bg-gray-800 text-white flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent">
+                 {/* 1. Header (Compact) */}
+                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 print:pb-2 print:border-b">
+                    <div className="flex items-center gap-4 print:gap-2">
+                       <div className="w-16 h-16 bg-gray-800 text-white flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent print:w-12 print:h-12 print:text-xl">
                           TF
                        </div>
                        <div>
-                          <h1 className="text-2xl font-bold uppercase text-gray-900 print:text-black">{settings.companyName}</h1>
-                          <p className="text-sm text-gray-700 print:text-black">CNPJ: {settings.cnpj}</p>
-                          <p className="text-sm text-gray-700 print:text-black">{settings.address}</p>
-                          <p className="text-sm text-gray-700 print:text-black">Tel: {settings.phone} | Email: {settings.email}</p>
+                          <h1 className="text-2xl font-bold uppercase text-gray-900 print:text-black print:text-lg">{settings.companyName}</h1>
+                          <p className="text-sm text-gray-700 print:text-black print:text-[10px]">CNPJ: {settings.cnpj}</p>
+                          <p className="text-sm text-gray-700 print:text-black print:text-[10px]">{settings.address}</p>
+                          <p className="text-sm text-gray-700 print:text-black print:text-[10px]">Tel: {settings.phone} | Email: {settings.email}</p>
                        </div>
                     </div>
                     <div className="text-right">
-                       <h2 className="text-3xl font-bold text-gray-800 print:text-black">ORDEM DE SERVIÇO</h2>
-                       <p className="text-xl font-mono text-gray-600 mt-1 print:text-black">#{printingOS.id}</p>
-                       <p className="text-sm text-gray-500 mt-2 print:text-black">Data: {new Date(printingOS.createdAt).toLocaleDateString()} {new Date(printingOS.createdAt).toLocaleTimeString()}</p>
-                       <p className={`text-sm font-bold uppercase mt-1 px-2 py-0.5 inline-block rounded border ${printingOS.status === OSStatus.CONCLUIDO || printingOS.status === OSStatus.FINALIZADO ? 'border-green-600 text-green-800' : 'border-gray-400 text-gray-600'} print:border-black print:text-black`}>
+                       <h2 className="text-3xl font-bold text-gray-800 print:text-black print:text-xl">ORDEM DE SERVIÇO</h2>
+                       <p className="text-xl font-mono text-gray-600 mt-1 print:text-black print:text-sm">#{printingOS.id}</p>
+                       <p className="text-sm text-gray-500 mt-2 print:text-black print:text-[10px] print:mt-0">Data: {new Date(printingOS.createdAt).toLocaleDateString()} {new Date(printingOS.createdAt).toLocaleTimeString()}</p>
+                       <p className={`text-sm font-bold uppercase mt-1 px-2 py-0.5 inline-block rounded border ${printingOS.status === OSStatus.CONCLUIDO || printingOS.status === OSStatus.FINALIZADO ? 'border-green-600 text-green-800' : 'border-gray-400 text-gray-600'} print:border-black print:text-black print:text-[10px] print:px-1 print:py-0`}>
                           {printingOS.status}
                        </p>
                     </div>
                  </div>
 
-                 {/* 2. Client & Device Grid */}
-                 <div className="grid grid-cols-2 gap-8 print:gap-4">
+                 {/* 2. Client & Device Grid (Side by Side) */}
+                 <div className="grid grid-cols-2 gap-8 print:gap-2">
                     {/* Client Data */}
-                    <div className="border border-gray-300 rounded-lg p-4 print:border-black">
-                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black">
-                          <User size={16}/> Dados do Cliente
+                    <div className="border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
+                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black print:text-[10px] print:mb-1 print:pb-1 print:p-0 print:mx-0 print:mt-0 print:rounded-none">
+                          <User size={14} className="print:w-3 print:h-3"/> Dados do Cliente
                        </h3>
-                       <div className="space-y-1 text-sm print:text-black">
+                       <div className="space-y-1 text-sm print:text-black print:text-[10px] print:space-y-0">
                           <p><span className="font-bold">Nome:</span> {client?.name || printingOS.customerName}</p>
                           <p><span className="font-bold">CPF/CNPJ:</span> {client?.cpfOrCnpj || 'Não informado'}</p>
                           <p><span className="font-bold">Telefone:</span> {client?.phone}</p>
-                          <p><span className="font-bold">Endereço:</span> {client?.address}, {client?.addressNumber}</p>
+                          <p className="truncate"><span className="font-bold">Endereço:</span> {client?.address}, {client?.addressNumber}</p>
                        </div>
                     </div>
 
                     {/* Device Data */}
-                    <div className="border border-gray-300 rounded-lg p-4 print:border-black">
-                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black">
-                          <Smartphone size={16}/> Dados do Aparelho
+                    <div className="border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
+                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black print:text-[10px] print:mb-1 print:pb-1 print:p-0 print:mx-0 print:mt-0 print:rounded-none">
+                          <Smartphone size={14} className="print:w-3 print:h-3"/> Dados do Aparelho
                        </h3>
-                       <div className="flex gap-4">
-                          <div className="space-y-1 text-sm flex-1 print:text-black">
+                       <div className="flex gap-4 print:gap-2">
+                          <div className="space-y-1 text-sm flex-1 print:text-black print:text-[10px] print:space-y-0">
                              <p><span className="font-bold">Equipamento:</span> {printingOS.device}</p>
                              <p><span className="font-bold">IMEI:</span> {printingOS.imei || '-'}</p>
                              <p><span className="font-bold">Nº Série:</span> {printingOS.serialNumber || '-'}</p>
-                             <p><span className="font-bold">Senha (PIN):</span> {printingOS.devicePassword || 'Não informada'}</p>
+                             <p><span className="font-bold">Senha:</span> {printingOS.devicePassword || 'N/A'}</p>
                           </div>
                           {printingOS.patternPassword && (
-                             <div className="border border-gray-200 rounded p-1 print:border-black">
-                                <p className="text-[10px] text-center text-gray-500 mb-1 print:text-black">Padrão</p>
-                                <PatternLock value={printingOS.patternPassword} readOnly size={60} />
+                             <div className="border border-gray-200 rounded p-1 print:border-black print:w-12 print:h-12 flex items-center justify-center">
+                                <PatternLock value={printingOS.patternPassword} readOnly size={40} />
                              </div>
                           )}
                        </div>
@@ -268,70 +281,70 @@ export const ServiceOrders: React.FC = () => {
                  </div>
 
                  {/* 3. Defect / Diagnosis */}
-                 <div className="border border-gray-300 rounded-lg p-4 print:border-black">
-                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black">
+                 <div className="border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
+                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black print:text-[10px] print:mb-1 print:pb-1 print:p-0 print:mx-0 print:mt-0 print:rounded-none">
                        Relato do Defeito / Diagnóstico
                     </h3>
-                    <p className="text-sm whitespace-pre-wrap min-h-[60px] print:text-black">{printingOS.description}</p>
+                    <p className="text-sm whitespace-pre-wrap min-h-[60px] print:min-h-[20px] print:text-black print:text-[10px]">{printingOS.description}</p>
                     {printingOS.technicalNotes && (
-                       <div className="mt-4 pt-4 border-t border-dashed border-gray-300 print:border-black">
-                          <p className="text-xs font-bold text-gray-500 uppercase mb-1 print:text-black">Observações Técnicas:</p>
-                          <p className="text-sm italic text-gray-600 print:text-black">{printingOS.technicalNotes}</p>
+                       <div className="mt-4 pt-4 border-t border-dashed border-gray-300 print:border-black print:mt-2 print:pt-1">
+                          <p className="text-xs font-bold text-gray-500 uppercase mb-1 print:text-black print:text-[9px] print:mb-0">Observações Técnicas:</p>
+                          <p className="text-sm italic text-gray-600 print:text-black print:text-[10px]">{printingOS.technicalNotes}</p>
                        </div>
                     )}
                  </div>
 
                  {/* 4. Products & Services Details - Side by Side */}
-                 <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8 print:gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8 print:gap-2">
                      {/* Products */}
                      <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black h-fit">
-                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Peças / Produtos</div>
+                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black print:text-[10px] print:py-1">Peças / Produtos</div>
                         <div className="p-0">
                            {productItems.length > 0 ? (
-                              <table className="w-full text-xs">
+                              <table className="w-full text-xs print:text-[10px]">
                                  <thead>
                                     <tr className="border-b border-gray-100 text-gray-400 print:border-black print:text-black">
-                                       <th className="p-2 text-left">Item</th>
-                                       <th className="p-2 text-center">Qtd</th>
-                                       <th className="p-2 text-right">Valor</th>
+                                       <th className="p-2 print:py-1 text-left">Item</th>
+                                       <th className="p-2 print:py-1 text-center">Qtd</th>
+                                       <th className="p-2 print:py-1 text-right">Total</th>
                                     </tr>
                                  </thead>
                                  <tbody>
                                     {productItems.map((item, idx) => (
                                        <tr key={idx} className="border-b border-gray-50 last:border-0 print:border-gray-300">
-                                          <td className="p-2 print:text-black">{item.name}</td>
-                                          <td className="p-2 text-center print:text-black">{item.quantity}</td>
-                                          <td className="p-2 text-right print:text-black">R$ {item.total.toFixed(2)}</td>
+                                          <td className="p-2 print:py-1 print:text-black">{item.name}</td>
+                                          <td className="p-2 print:py-1 text-center print:text-black">{item.quantity}</td>
+                                          <td className="p-2 print:py-1 text-right print:text-black">R$ {item.total.toFixed(2)}</td>
                                        </tr>
                                     ))}
                                  </tbody>
                               </table>
-                           ) : <p className="p-4 text-center text-gray-400 text-xs print:text-black">Nenhuma peça utilizada.</p>}
+                           ) : <p className="p-4 text-center text-gray-400 text-xs print:text-black print:py-2 print:text-[10px]">Nenhuma peça utilizada.</p>}
                         </div>
                      </div>
 
                      {/* Services */}
                      <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black h-fit">
-                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Serviços Executados</div>
+                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black print:text-[10px] print:py-1">Serviços Executados</div>
                         <div className="p-0">
                            {serviceItems.length > 0 ? (
-                              <table className="w-full text-xs">
+                              <table className="w-full text-xs print:text-[10px]">
                                  <thead>
                                     <tr className="border-b border-gray-100 text-gray-400 print:border-black print:text-black">
-                                       <th className="p-2 text-left">Serviço</th>
-                                       <th className="p-2 text-right">Valor</th>
+                                       <th className="p-2 print:py-1 text-left">Serviço</th>
+                                       <th className="p-2 print:py-1 text-right">Valor</th>
                                     </tr>
                                  </thead>
                                  <tbody>
                                     {serviceItems.map((item, idx) => (
                                        <tr key={idx} className="border-b border-gray-50 last:border-0 print:border-gray-300">
-                                          <td className="p-2 print:text-black">{item.name}</td>
-                                          <td className="p-2 text-right print:text-black">R$ {item.total.toFixed(2)}</td>
+                                          <td className="p-2 print:py-1 print:text-black">{item.name}</td>
+                                          <td className="p-2 print:py-1 text-right print:text-black">R$ {item.total.toFixed(2)}</td>
                                        </tr>
                                     ))}
                                  </tbody>
                               </table>
-                           ) : <p className="p-4 text-center text-gray-400 text-xs print:text-black">Nenhum serviço registrado.</p>}
+                           ) : <p className="p-4 text-center text-gray-400 text-xs print:text-black print:py-2 print:text-[10px]">Nenhum serviço registrado.</p>}
                         </div>
                      </div>
                  </div>
@@ -339,14 +352,14 @@ export const ServiceOrders: React.FC = () => {
                  {/* 5. Financials */}
                  <div className="flex justify-end">
                     <div className="w-1/2 border border-gray-300 rounded-lg overflow-hidden print:border-black">
-                       <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Resumo Financeiro</div>
-                       <div className="p-4 space-y-2">
-                          <div className="flex justify-between text-lg font-bold pt-2 mt-2 text-gray-900 print:text-black">
+                       <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black print:text-[10px] print:py-1">Resumo Financeiro</div>
+                       <div className="p-4 space-y-2 print:p-2 print:space-y-1">
+                          <div className="flex justify-between text-lg font-bold pt-2 mt-2 text-gray-900 print:text-black print:text-sm print:mt-0 print:pt-0">
                              <span>Total</span>
                              <span>R$ {printingOS.totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                           </div>
                           {printingOS.paymentMethod && (
-                             <div className="text-right text-xs text-gray-500 print:text-black">
+                             <div className="text-right text-xs text-gray-500 print:text-black print:text-[10px]">
                                 Pago via {printingOS.paymentMethod}
                              </div>
                           )}
@@ -355,21 +368,21 @@ export const ServiceOrders: React.FC = () => {
                  </div>
 
                  {/* 6. Terms & Signature */}
-                 <div className="mt-8 pt-6 border-t-2 border-gray-800 print:break-inside-avoid print:border-black">
-                    <p className="text-xs text-gray-500 text-justify mb-8 print:text-black">
-                       <strong>Termos de Garantia:</strong> A garantia cobre apenas o serviço executado e as peças substituídas pelo prazo estipulado acima. Não cobrimos danos causados por mau uso, quedas, contato com líquidos ou intervenção de terceiros. Aparelhos não retirados em até 90 dias serão descartados ou vendidos para custear despesas (Lei 11.111).
+                 <div className="mt-8 pt-6 border-t-2 border-gray-800 print:break-inside-avoid print:border-black print:mt-4 print:pt-2">
+                    <p className="text-xs text-gray-500 text-justify mb-8 print:text-black print:text-[9px] print:leading-tight print:mb-4">
+                       <strong>Termos de Garantia:</strong> A garantia cobre apenas o serviço executado e as peças substituídas pelo prazo estipulado. Não cobrimos danos causados por mau uso, quedas, contato com líquidos ou intervenção de terceiros. Aparelhos não retirados em até 90 dias serão descartados ou vendidos para custear despesas (Lei 11.111).
                     </p>
 
-                    <div className="grid grid-cols-2 gap-16 mt-16">
+                    <div className="grid grid-cols-2 gap-16 mt-16 print:mt-4 print:gap-8">
                        <div className="text-center">
-                          <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
-                          <p className="text-sm font-bold uppercase print:text-black">{client?.name || 'Assinatura do Cliente'}</p>
-                          <p className="text-xs text-gray-500 print:text-black">CPF: {client?.cpfOrCnpj || '_________________'}</p>
+                          <div className="border-t border-black w-3/4 mx-auto mb-2 print:w-full"></div>
+                          <p className="text-sm font-bold uppercase print:text-black print:text-[10px]">{client?.name || 'Assinatura do Cliente'}</p>
+                          <p className="text-xs text-gray-500 print:text-black print:text-[9px]">CPF: {client?.cpfOrCnpj || '_________________'}</p>
                        </div>
                        <div className="text-center">
-                          <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
-                          <p className="text-sm font-bold uppercase print:text-black">{settings.companyName}</p>
-                          <p className="text-xs text-gray-500 print:text-black">Técnico Responsável</p>
+                          <div className="border-t border-black w-3/4 mx-auto mb-2 print:w-full"></div>
+                          <p className="text-sm font-bold uppercase print:text-black print:text-[10px]">{settings.companyName}</p>
+                          <p className="text-xs text-gray-500 print:text-black print:text-[9px]">Técnico Responsável</p>
                        </div>
                     </div>
                  </div>
