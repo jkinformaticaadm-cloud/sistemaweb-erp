@@ -171,11 +171,23 @@ export const CompleteSales: React.FC = () => {
      const [productPrice, setProductPrice] = useState(0);
      const [productImeiInput, setProductImeiInput] = useState(''); // Manual IMEI input
 
+     // Credit Card Logic
+     const [selectedPaymentBase, setSelectedPaymentBase] = useState(''); // Holds 'Dinheiro', 'Crédito', etc.
+     const [creditMode, setCreditMode] = useState<'vista' | 'parcelado'>('vista');
+     const [installments, setInstallments] = useState(1);
+
      // Init for Edit
      useEffect(() => {
         if (editingSale) {
            setFormData({ ...editingSale });
            setAddedItems(editingSale.items || []);
+           // Basic logic to try and parse payment method if editing
+           if (editingSale.paymentMethod?.includes('Crédito')) {
+              setSelectedPaymentBase('Cartão de Crédito');
+              // Would need regex to parse installments, keeping simple for now
+           } else {
+              setSelectedPaymentBase(editingSale.paymentMethod || '');
+           }
         }
      }, []);
 
@@ -191,7 +203,6 @@ export const CompleteSales: React.FC = () => {
      const handleAddProduct = () => {
         const prod = products.find(p => p.id === selectedProductId);
         if (prod) {
-           // Construct Detailed Info
            let detailString = '';
            const specs = [];
            if (prod.brand) specs.push(prod.brand);
@@ -202,7 +213,6 @@ export const CompleteSales: React.FC = () => {
            
            if (specs.length > 0) detailString += specs.join(' - ');
 
-           // Use product IMEI or manual input
            const finalImei = productImeiInput || prod.imei;
            if (finalImei) {
               detailString += ` | IMEI/Serial: ${finalImei}`;
@@ -218,7 +228,6 @@ export const CompleteSales: React.FC = () => {
               type: 'product'
            });
            
-           // Reset fields
            setSelectedProductId('');
            setProductQty(1);
            setProductPrice(0);
@@ -231,8 +240,19 @@ export const CompleteSales: React.FC = () => {
         const customer = customers.find(c => c.id === formData.customerId);
         if (!customer) return alert("Selecione um cliente");
 
-        if (finalize && !formData.paymentMethod) {
+        if (finalize && !selectedPaymentBase) {
            return alert("Selecione a forma de pagamento para finalizar e receber.");
+        }
+
+        // Construct final Payment String
+        let finalPaymentMethod = selectedPaymentBase;
+        if (selectedPaymentBase === 'Cartão de Crédito') {
+           if (creditMode === 'vista') {
+              finalPaymentMethod = 'Crédito - À Vista';
+           } else {
+              const instValue = totalValue / installments;
+              finalPaymentMethod = `Crédito - ${installments}x de R$ ${instValue.toFixed(2)}`;
+           }
         }
 
         const finalStatus = finalize ? OrderStatus.FINISHED : (formData.status || OrderStatus.PENDING);
@@ -241,20 +261,18 @@ export const CompleteSales: React.FC = () => {
            id: editingSale ? editingSale.id : `V-${Date.now().toString().slice(-6)}`,
            customerId: customer.id,
            customerName: customer.name,
-           // Note: Device fields removed from top level, details are now in items
            description: formData.description,
            status: finalStatus,
            createdAt: editingSale ? editingSale.createdAt : new Date().toISOString(),
            totalValue: totalValue,
            warranty: formData.warranty,
            items: addedItems,
-           paymentMethod: formData.paymentMethod
+           paymentMethod: finalPaymentMethod
         };
 
         if (editingSale) updateSalesOrder(editingSale.id, saleData);
         else addSalesOrder(saleData);
 
-        // If finalizing, generate transaction
         if (finalize && finalStatus === OrderStatus.FINISHED) {
             const transaction: Transaction = {
                id: `TR-VS-${saleData.id}`,
@@ -266,7 +284,7 @@ export const CompleteSales: React.FC = () => {
                transactionDetails: {
                   customerName: saleData.customerName,
                   paymentMethod: saleData.paymentMethod,
-                  items: saleData.items.map(i => ({...i} as any)) // Simplify mapping
+                  items: saleData.items.map(i => ({...i} as any))
                }
             };
             addTransaction(transaction);
@@ -276,6 +294,10 @@ export const CompleteSales: React.FC = () => {
         setIsModalOpen(false);
         setEditingSale(null);
      };
+
+     // Get Available Installments from Settings
+     const machine = settings.paymentMachines && settings.paymentMachines.length > 0 ? settings.paymentMachines[0] : null;
+     const availableInstallments = machine ? machine.creditRates.filter(r => r.installments > 1) : [];
 
      return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -380,7 +402,6 @@ export const CompleteSales: React.FC = () => {
                   </table>
                </div>
 
-               {/* Moved Observations to bottom */}
                <div>
                   <label className="label">Descrição / Observações da Venda</label>
                   <textarea className="input min-h-[60px]" placeholder="Detalhes adicionais..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}/>
@@ -398,7 +419,11 @@ export const CompleteSales: React.FC = () => {
                   </div>
                   <div>
                      <label className="label flex items-center gap-1"><CreditCard size={14}/> Forma de Pagamento</label>
-                     <select className="input font-bold text-gray-700" value={formData.paymentMethod} onChange={e => setFormData({...formData, paymentMethod: e.target.value})}>
+                     <select 
+                        className="input font-bold text-gray-700" 
+                        value={selectedPaymentBase} 
+                        onChange={e => setSelectedPaymentBase(e.target.value)}
+                     >
                         <option value="">Selecione...</option>
                         <option>Dinheiro</option>
                         <option>Pix</option>
@@ -406,6 +431,50 @@ export const CompleteSales: React.FC = () => {
                         <option>Cartão de Débito</option>
                         <option>Crediário</option>
                      </select>
+
+                     {/* Credit Card Specific Options */}
+                     {selectedPaymentBase === 'Cartão de Crédito' && (
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg animate-fade-in">
+                           <p className="text-xs font-bold text-blue-800 uppercase mb-2">Condição de Pagamento</p>
+                           <div className="flex gap-4 mb-3">
+                              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                                 <input 
+                                    type="radio" name="creditMode" 
+                                    checked={creditMode === 'vista'} 
+                                    onChange={() => setCreditMode('vista')} 
+                                 /> À Vista
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer text-sm">
+                                 <input 
+                                    type="radio" name="creditMode" 
+                                    checked={creditMode === 'parcelado'} 
+                                    onChange={() => setCreditMode('parcelado')} 
+                                 /> Parcelado
+                              </label>
+                           </div>
+
+                           {creditMode === 'parcelado' && (
+                              <div className="animate-fade-in">
+                                 <label className="block text-xs font-bold text-gray-500 mb-1">Parcelas Disponíveis</label>
+                                 <select 
+                                    className="w-full border p-2 rounded text-sm bg-white"
+                                    value={installments}
+                                    onChange={e => setInstallments(Number(e.target.value))}
+                                 >
+                                    {availableInstallments.map(opt => {
+                                       const installmentVal = totalValue / opt.installments;
+                                       return (
+                                          <option key={opt.installments} value={opt.installments}>
+                                             {opt.installments}x de R$ {installmentVal.toFixed(2)}
+                                          </option>
+                                       );
+                                    })}
+                                    {availableInstallments.length === 0 && <option value="2">2x (Padrão)</option>}
+                                 </select>
+                              </div>
+                           )}
+                        </div>
+                     )}
                   </div>
                </div>
 
