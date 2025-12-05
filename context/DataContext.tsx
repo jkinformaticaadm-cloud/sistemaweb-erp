@@ -19,6 +19,7 @@ interface DataContextType {
   addCustomer: (c: Customer) => void;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
   addProduct: (p: Product) => void;
+  updateProduct: (id: string, p: Partial<Product>) => void;
   addServiceOrder: (os: ServiceOrder) => void;
   updateServiceOrder: (id: string, updates: Partial<ServiceOrder>) => void;
   addTransaction: (t: Transaction) => void;
@@ -238,6 +239,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addProduct = (p: Product) => setProducts([...products, p]);
   
+  const updateProduct = (id: string, updates: Partial<Product>) => {
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  };
+
   const addServiceOrder = (os: ServiceOrder) => {
     setServiceOrders([os, ...serviceOrders]);
   };
@@ -404,7 +409,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <DataContext.Provider value={{
       customers, products, serviceOrders, transactions, salesOrders, settings,
       supplies, services, purchases, installmentPlans, payableAccounts, financialGoals,
-      addCustomer, updateCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, 
+      addCustomer, updateCustomer, addProduct, updateProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, 
       addSalesOrder, updateSalesOrder, updateSettings, 
       addSupply, updateSupplyStock, addService, addPurchase,
       addInstallmentPlan, payInstallment, updateInstallmentValue,

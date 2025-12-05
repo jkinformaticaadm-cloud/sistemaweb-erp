@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { Product } from '../types';
-import { PackagePlus, Search, Smartphone, Headphones, Box, Tag } from 'lucide-react';
+import { PackagePlus, Search, Smartphone, Headphones, Box, Tag, Eye, X, Barcode, Calendar, DollarSign, Edit } from 'lucide-react';
 
 type ProductTab = 'accessories' | 'devices';
 
@@ -22,10 +22,12 @@ const ACCESSORY_CATEGORIES = [
 ];
 
 export const Products: React.FC = () => {
-  const { products, addProduct } = useData();
+  const { products, addProduct, updateProduct } = useData();
   const [activeTab, setActiveTab] = useState<ProductTab>('accessories');
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
   // Generic Form State
   const [name, setName] = useState('');
@@ -51,11 +53,11 @@ export const Products: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    let newProduct: Product;
+    // Prepare Data
+    let productData: Partial<Product>;
 
     if (activeTab === 'accessories') {
-       newProduct = {
-         id: Date.now().toString(),
+       productData = {
          name,
          price: Number(price),
          cost: Number(cost),
@@ -66,12 +68,11 @@ export const Products: React.FC = () => {
          maxStock: Number(maxStock)
        };
     } else {
-       newProduct = {
-         id: Date.now().toString(),
+       productData = {
          name: `${brand} ${model} ${storage}`, // Auto-generate name for list consistency
          price: Number(price),
          cost: Number(cost),
-         stock: 1, // Devices usually unique, but can be edited later
+         stock: editingProduct ? Number(stock) : 1, // Preserve stock if editing, default 1 if new
          category: 'Aparelhos',
          brand,
          model,
@@ -83,15 +84,56 @@ export const Products: React.FC = () => {
        };
     }
 
-    addProduct(newProduct);
+    if (editingProduct) {
+       updateProduct(editingProduct.id, productData);
+    } else {
+       const newProduct = {
+          ...productData,
+          id: Date.now().toString(),
+       } as Product;
+       addProduct(newProduct);
+    }
+
     setShowForm(false);
     resetForm();
   };
 
   const resetForm = () => {
+    setEditingProduct(null);
     setName(''); setPrice(''); setCost(''); setStock('');
     setCompatibility(''); setMinStock(''); setMaxStock('');
     setBrand(''); setModel(''); setImei(''); setSerial(''); setColor(''); setStorage('');
+  };
+
+  const handleEdit = (product: Product) => {
+     setEditingProduct(product);
+     setPrice(product.price.toString());
+     setCost(product.cost.toString());
+     setStock(product.stock.toString());
+     
+     if (product.category === 'Aparelhos') {
+        setActiveTab('devices');
+        setBrand(product.brand || '');
+        setModel(product.model || '');
+        setImei(product.imei || '');
+        setSerial(product.serialNumber || '');
+        setColor(product.color || '');
+        setStorage(product.storage || '');
+        setCondition(product.condition || 'Usado');
+     } else {
+        setActiveTab('accessories');
+        setName(product.name);
+        setAccCategory(product.category);
+        setCompatibility(product.compatibility || '');
+        setMinStock(product.minStock?.toString() || '');
+        setMaxStock(product.maxStock?.toString() || '');
+     }
+     setShowForm(true);
+  };
+
+  const handleNewProduct = () => {
+     resetForm();
+     setShowForm(!showForm);
   };
 
   const filtered = useMemo(() => {
@@ -107,6 +149,136 @@ export const Products: React.FC = () => {
         }
      });
   }, [products, searchTerm, activeTab]);
+
+  const ProductDetailsModal = () => {
+    if (!viewingProduct) return null;
+    const isDevice = viewingProduct.category === 'Aparelhos';
+
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-fade-in backdrop-blur-sm">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          {/* Header */}
+          <div className="bg-gray-800 text-white p-6 flex justify-between items-start">
+             <div>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                   {isDevice ? <Smartphone size={24}/> : <Headphones size={24}/>}
+                   Detalhes do Produto
+                </h2>
+                <p className="text-gray-400 text-sm mt-1">{viewingProduct.name}</p>
+             </div>
+             <button onClick={() => setViewingProduct(null)} className="bg-gray-700 hover:bg-gray-600 p-2 rounded-full transition-colors">
+                <X size={20}/>
+             </button>
+          </div>
+
+          <div className="p-6 overflow-y-auto">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Basic Info Block */}
+                <div className="md:col-span-2 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                   <h3 className="text-sm font-bold text-gray-500 uppercase mb-3 flex items-center gap-2"><Tag size={16}/> Informações Básicas</h3>
+                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                         <p className="text-xs text-gray-500">ID / SKU</p>
+                         <p className="font-mono font-bold text-gray-800 text-sm">{viewingProduct.id}</p>
+                      </div>
+                      <div>
+                         <p className="text-xs text-gray-500">Categoria</p>
+                         <span className="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{viewingProduct.category}</span>
+                      </div>
+                      {isDevice && (
+                         <>
+                           <div>
+                              <p className="text-xs text-gray-500">Condição</p>
+                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${viewingProduct.condition === 'Novo' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                                 {viewingProduct.condition}
+                              </span>
+                           </div>
+                         </>
+                      )}
+                      {!isDevice && (
+                         <div>
+                            <p className="text-xs text-gray-500">Compatibilidade</p>
+                            <p className="font-bold text-gray-800 text-sm">{viewingProduct.compatibility || '-'}</p>
+                         </div>
+                      )}
+                   </div>
+                </div>
+
+                {/* Specific Details */}
+                {isDevice ? (
+                   <div className="md:col-span-2 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                      <h3 className="text-sm font-bold text-gray-500 uppercase mb-3 flex items-center gap-2"><Smartphone size={16}/> Especificações do Aparelho</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-2">
+                         <div>
+                            <p className="text-xs text-gray-500">Marca</p>
+                            <p className="font-bold text-gray-800">{viewingProduct.brand}</p>
+                         </div>
+                         <div>
+                            <p className="text-xs text-gray-500">Modelo</p>
+                            <p className="font-bold text-gray-800">{viewingProduct.model}</p>
+                         </div>
+                         <div>
+                            <p className="text-xs text-gray-500">Cor</p>
+                            <p className="font-bold text-gray-800">{viewingProduct.color}</p>
+                         </div>
+                         <div>
+                            <p className="text-xs text-gray-500">Armazenamento</p>
+                            <p className="font-bold text-gray-800">{viewingProduct.storage}</p>
+                         </div>
+                         <div className="col-span-2">
+                            <p className="text-xs text-gray-500">IMEI</p>
+                            <p className="font-mono font-bold text-gray-800">{viewingProduct.imei || 'Não informado'}</p>
+                         </div>
+                         <div className="col-span-2">
+                            <p className="text-xs text-gray-500">Nº de Série</p>
+                            <p className="font-mono font-bold text-gray-800">{viewingProduct.serialNumber || 'Não informado'}</p>
+                         </div>
+                      </div>
+                   </div>
+                ) : (
+                   <div className="md:col-span-2 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                      <h3 className="text-sm font-bold text-gray-500 uppercase mb-3 flex items-center gap-2"><Box size={16}/> Controle de Estoque</h3>
+                      <div className="flex justify-between items-center">
+                         <div className="text-center">
+                            <p className="text-xs text-gray-500">Atual</p>
+                            <p className="text-2xl font-bold text-gray-800">{viewingProduct.stock}</p>
+                         </div>
+                         <div className="h-8 w-px bg-gray-300"></div>
+                         <div className="text-center">
+                            <p className="text-xs text-gray-500">Mínimo</p>
+                            <p className="text-lg font-bold text-orange-600">{viewingProduct.minStock || '-'}</p>
+                         </div>
+                         <div className="h-8 w-px bg-gray-300"></div>
+                         <div className="text-center">
+                            <p className="text-xs text-gray-500">Máximo</p>
+                            <p className="text-lg font-bold text-green-600">{viewingProduct.maxStock || '-'}</p>
+                         </div>
+                      </div>
+                   </div>
+                )}
+
+                {/* Financials */}
+                <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                   <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                      <p className="text-xs text-red-600 font-bold uppercase mb-1">Custo Unitário</p>
+                      <p className="text-2xl font-bold text-red-700">R$ {viewingProduct.cost.toFixed(2)}</p>
+                   </div>
+                   <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                      <p className="text-xs text-green-600 font-bold uppercase mb-1">Preço de Venda</p>
+                      <p className="text-2xl font-bold text-green-700">R$ {viewingProduct.price.toFixed(2)}</p>
+                   </div>
+                   <div className="col-span-2 text-center text-xs text-gray-500 mt-2">
+                      Margem de Lucro Estimada: <span className="font-bold text-green-600">{(((viewingProduct.price - viewingProduct.cost) / viewingProduct.price) * 100).toFixed(1)}%</span>
+                   </div>
+                </div>
+
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -136,7 +308,7 @@ export const Products: React.FC = () => {
         </div>
 
         <button 
-          onClick={() => setShowForm(!showForm)}
+          onClick={handleNewProduct}
           className="bg-accent hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
         >
           <PackagePlus size={20} /> {activeTab === 'accessories' ? 'Novo Acessório' : 'Novo Aparelho'}
@@ -146,10 +318,13 @@ export const Products: React.FC = () => {
       {/* --- FORM SECTION --- */}
       {showForm && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 animate-fade-in">
-          <h2 className="text-lg font-bold mb-4 text-gray-800 flex items-center gap-2">
-             {activeTab === 'accessories' ? <Headphones size={20}/> : <Smartphone size={20}/>}
-             {activeTab === 'accessories' ? 'Cadastrar Acessório' : 'Cadastrar Aparelho'}
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+               {editingProduct ? <Edit size={20} className="text-orange-500"/> : (activeTab === 'accessories' ? <Headphones size={20}/> : <Smartphone size={20}/>)}
+               {editingProduct ? 'Editar Produto' : (activeTab === 'accessories' ? 'Cadastrar Acessório' : 'Cadastrar Aparelho')}
+            </h2>
+            <button onClick={() => setShowForm(false)}><X className="text-gray-400 hover:text-gray-600"/></button>
+          </div>
           
           <form onSubmit={handleSubmit}>
             {/* Accessory Form */}
@@ -245,7 +420,9 @@ export const Products: React.FC = () => {
 
             <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold">Salvar Produto</button>
+                <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold">
+                   {editingProduct ? 'Atualizar Produto' : 'Salvar Produto'}
+                </button>
             </div>
           </form>
         </div>
@@ -293,6 +470,7 @@ export const Products: React.FC = () => {
                    </>
                 )}
                 <th className="px-6 py-4 text-center">Status</th>
+                <th className="px-6 py-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -348,17 +526,39 @@ export const Products: React.FC = () => {
                       {product.stock < (product.minStock || 1) ? 'Baixo' : 'Ok'}
                     </span>
                   </td>
+                  <td className="px-6 py-4 text-center">
+                     <div className="flex justify-center gap-2">
+                        <button 
+                           onClick={() => handleEdit(product)}
+                           className="bg-orange-100 hover:bg-orange-200 text-orange-600 p-2 rounded-lg transition-colors"
+                           title="Editar Produto"
+                        >
+                           <Edit size={18}/>
+                        </button>
+                        <button 
+                           onClick={() => setViewingProduct(product)}
+                           className="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition-colors"
+                           title="Visualizar Detalhes"
+                        >
+                           <Eye size={18}/>
+                        </button>
+                     </div>
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                  <tr>
-                    <td colSpan={7} className="p-8 text-center text-gray-400">Nenhum produto encontrado nesta categoria.</td>
+                    <td colSpan={8} className="p-8 text-center text-gray-400">Nenhum produto encontrado nesta categoria.</td>
                  </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+      
+      {/* Details Modal */}
+      <ProductDetailsModal />
+
     </div>
   );
 };
