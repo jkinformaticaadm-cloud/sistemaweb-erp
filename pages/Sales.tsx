@@ -304,67 +304,153 @@ export const Sales: React.FC = () => {
      const items = transactionDetails?.items || [];
      const isThermal = printFormat === 'thermal';
 
+     if (isThermal) {
+        return (
+           <div className="mx-auto bg-white text-black p-4 w-[80mm] text-xs font-mono">
+              <div className="text-center mb-6 border-b border-dashed border-black pb-4">
+                 <h2 className="font-bold uppercase text-sm">{settings.companyName}</h2>
+                 <p>{settings.address}</p>
+                 <p>Tel: {settings.phone}</p>
+                 <p className="mt-2 font-bold">COMPROVANTE DE VENDA</p>
+              </div>
+              <div className="mb-4 text-xs">
+                 <p>Data: {new Date(date).toLocaleDateString()} {new Date(date).toLocaleTimeString()}</p>
+                 <p>Venda: #{id}</p>
+                 <p>Cliente: {transactionDetails?.customerName || 'Consumidor Final'}</p>
+              </div>
+              <div className="mb-4 border-b border-dashed border-black pb-4">
+                 <table className="w-full text-left">
+                    <thead>
+                       <tr className="uppercase border-b border-black">
+                          <th className="py-1">Qtd</th>
+                          <th className="py-1">Item</th>
+                          <th className="py-1 text-right">Total</th>
+                       </tr>
+                    </thead>
+                    <tbody>
+                       {items.map((item, idx) => (
+                          <tr key={idx}>
+                             <td className="py-1 align-top" width="10%">{item.quantity}x</td>
+                             <td className="py-1 align-top">{item.name}</td>
+                             <td className="py-1 align-top text-right">{(item.price * item.quantity).toFixed(2)}</td>
+                          </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
+              <div className="flex flex-col gap-1 text-right text-xs">
+                 <div className="flex justify-between font-bold text-base">
+                    <span>TOTAL</span>
+                    <span>R$ {amount.toFixed(2)}</span>
+                 </div>
+                 <div className="flex justify-between text-xs mt-2">
+                    <span>Pagamento:</span>
+                    <span>{transactionDetails?.paymentMethod}</span>
+                 </div>
+              </div>
+              <div className="mt-8 text-center text-[10px]">
+                 <p>Obrigado pela preferência!</p>
+              </div>
+           </div>
+        );
+     }
+
+     // --- A4 STANDARD LAYOUT ---
      return (
-        <div className={`mx-auto bg-white text-black p-4 ${isThermal ? 'w-[80mm] text-xs font-mono' : 'w-full max-w-[210mm] p-10 font-sans'}`}>
+        <div className="w-full max-w-[210mm] p-8 md:p-10 font-sans text-gray-800 bg-white">
            
-           {/* Header */}
-           <div className={`text-center mb-6 border-b border-black pb-4 ${isThermal ? 'border-dashed' : ''}`}>
-              <h2 className={`font-bold uppercase ${isThermal ? 'text-sm' : 'text-xl'}`}>{settings.companyName}</h2>
-              <p>{settings.address}</p>
-              <p>Tel: {settings.phone}</p>
-              <p className="mt-2 font-bold">COMPROVANTE DE VENDA</p>
+           {/* 1. Header */}
+           <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-6 print:text-black">
+              <div className="flex items-center gap-4">
+                 <div className="w-16 h-16 bg-gray-800 text-white flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent">
+                    TF
+                 </div>
+                 <div>
+                    <h1 className="text-2xl font-bold uppercase text-gray-900 print:text-black">{settings.companyName}</h1>
+                    <p className="text-sm text-gray-700 print:text-black">CNPJ: {settings.cnpj}</p>
+                    <p className="text-sm text-gray-700 print:text-black">{settings.address}</p>
+                    <p className="text-sm text-gray-700 print:text-black">Tel: {settings.phone} | Email: {settings.email}</p>
+                 </div>
+              </div>
+              <div className="text-right">
+                 <h2 className="text-3xl font-bold text-gray-800 print:text-black">RECIBO DE VENDA</h2>
+                 <p className="text-xl font-mono text-gray-600 mt-1 print:text-black">#{id}</p>
+                 <p className="text-sm text-gray-500 mt-2 print:text-black">Data: {new Date(date).toLocaleDateString()} {new Date(date).toLocaleTimeString()}</p>
+              </div>
            </div>
 
-           {/* Meta Info */}
-           <div className="mb-4 text-xs">
-              <p>Data: {new Date(date).toLocaleDateString()} {new Date(date).toLocaleTimeString()}</p>
-              <p>Venda: #{id}</p>
-              {transactionDetails?.customerName && (
-                 <p>Cliente: {transactionDetails.customerName}</p>
-              )}
+           {/* 2. Customer Info */}
+           <div className="border border-gray-300 rounded-lg p-4 mb-6 print:border-black">
+              <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black">
+                 <User size={16}/> Dados do Cliente
+              </h3>
+              <div className="text-sm print:text-black">
+                 <p><span className="font-bold">Nome:</span> {transactionDetails?.customerName || 'Consumidor Final'}</p>
+                 {transactionDetails?.customerPhone && <p><span className="font-bold">Telefone:</span> {transactionDetails.customerPhone}</p>}
+                 {/* Can add address if available in customer object mapping */}
+              </div>
            </div>
 
-           {/* Items */}
-           <div className={`mb-4 border-b border-black pb-4 ${isThermal ? 'border-dashed' : ''}`}>
-              <table className="w-full text-left">
+           {/* 3. Items Table */}
+           <div className="border border-gray-300 rounded-lg overflow-hidden mb-6 print:border-black">
+              <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Produtos / Serviços</div>
+              <table className="w-full text-xs">
                  <thead>
-                    <tr className="uppercase border-b border-black">
-                       <th className="py-1">Qtd</th>
-                       <th className="py-1">Item</th>
-                       <th className="py-1 text-right">Vl. Total</th>
+                    <tr className="border-b border-gray-100 text-gray-400 print:border-black print:text-black">
+                       <th className="p-3 text-left">Item</th>
+                       <th className="p-3 text-center">Qtd</th>
+                       <th className="p-3 text-right">Valor Unit.</th>
+                       <th className="p-3 text-right">Total</th>
                     </tr>
                  </thead>
                  <tbody>
                     {items.map((item, idx) => (
-                       <tr key={idx}>
-                          <td className="py-1 align-top" width="10%">{item.quantity}x</td>
-                          <td className="py-1 align-top">
-                             {item.name}
-                             <div className="text-[10px] text-gray-500">Unit: {item.price.toFixed(2)}</div>
+                       <tr key={idx} className="border-b border-gray-50 last:border-0 print:border-gray-300">
+                          <td className="p-3 print:text-black">
+                             <span className="font-bold">{item.name}</span>
+                             <div className="text-[10px] text-gray-500 print:text-black">Cod: {item.id}</div>
                           </td>
-                          <td className="py-1 align-top text-right" width="25%">{(item.price * item.quantity).toFixed(2)}</td>
+                          <td className="p-3 text-center print:text-black">{item.quantity}</td>
+                          <td className="p-3 text-right print:text-black">R$ {item.price.toFixed(2)}</td>
+                          <td className="p-3 text-right font-medium print:text-black">R$ {(item.price * item.quantity).toFixed(2)}</td>
                        </tr>
                     ))}
                  </tbody>
               </table>
            </div>
 
-           {/* Totals */}
-           <div className={`flex flex-col gap-1 text-right ${isThermal ? 'text-xs' : 'text-sm'}`}>
-              <div className="flex justify-between font-bold text-base">
-                 <span>TOTAL</span>
-                 <span>R$ {amount.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-xs mt-2">
-                 <span>Forma de Pagamento:</span>
-                 <span>{transactionDetails?.paymentMethod}</span>
+           {/* 4. Financial Summary */}
+           <div className="flex justify-end mb-12">
+              <div className="w-1/2 border border-gray-300 rounded-lg overflow-hidden print:border-black">
+                 <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Totalização</div>
+                 <div className="p-4 space-y-2">
+                    <div className="flex justify-between text-sm text-gray-600 print:text-black">
+                       <span>Forma de Pagamento:</span>
+                       <span className="font-bold">{transactionDetails?.paymentMethod}</span>
+                    </div>
+                    <div className="flex justify-between text-2xl font-bold pt-2 mt-2 text-gray-900 border-t border-gray-100 print:border-black print:text-black">
+                       <span>Total Pago</span>
+                       <span>R$ {amount.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    </div>
+                 </div>
               </div>
            </div>
 
-           {/* Footer */}
-           <div className="mt-8 text-center text-[10px]">
-              <p>Obrigado pela preferência!</p>
-              <p>Volte sempre.</p>
+           {/* 5. Footer / Signature */}
+           <div className="mt-auto pt-8 border-t-2 border-gray-800 print:border-black print:break-inside-avoid">
+              <div className="grid grid-cols-2 gap-16 mt-8">
+                 <div className="text-center">
+                    <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
+                    <p className="text-sm font-bold uppercase print:text-black">{transactionDetails?.customerName || 'Cliente'}</p>
+                 </div>
+                 <div className="text-center">
+                    <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
+                    <p className="text-sm font-bold uppercase print:text-black">{settings.companyName}</p>
+                 </div>
+              </div>
+              <p className="text-center text-[10px] text-gray-400 mt-8 print:text-black">
+                 Documento gerado eletronicamente em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}
+              </p>
            </div>
         </div>
      );
@@ -1138,7 +1224,7 @@ export const Sales: React.FC = () => {
                {/* Receipt Content Wrapper */}
                <div className="overflow-y-auto bg-gray-100 p-8 flex justify-center print:p-0 print:bg-white print:overflow-visible flex-1">
                    <div className={`bg-white shadow-lg print:shadow-none transition-all duration-300 
-                      ${printFormat === 'a4' ? 'w-full max-w-[210mm] min-h-[297mm] p-10 print:w-full print:max-w-none' : 'w-[80mm] min-h-[100mm] p-2 print:w-full'} 
+                      ${printFormat === 'a4' ? 'w-full max-w-[210mm] min-h-[297mm] print:w-full print:max-w-none' : 'w-[80mm] min-h-[100mm] p-2 print:w-full'} 
                    `}>
                       <ReceiptContent />
                    </div>
