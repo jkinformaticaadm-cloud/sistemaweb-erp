@@ -18,11 +18,15 @@ interface DataContextType {
   
   addCustomer: (c: Customer) => void;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
+  updateCustomerCredit: (customerId: string, amount: number, operation: 'add' | 'set') => void;
+  
   addProduct: (p: Product) => void;
   updateProduct: (id: string, p: Partial<Product>) => void;
   addServiceOrder: (os: ServiceOrder) => void;
   updateServiceOrder: (id: string, updates: Partial<ServiceOrder>) => void;
   addTransaction: (t: Transaction) => void;
+  processRefund: (originalTransaction: Transaction, refundType: 'money' | 'credit', customerId?: string) => void;
+  
   updateStock: (productId: string, quantity: number) => void;
   addSalesOrder: (order: SalesOrder) => void;
   updateSalesOrder: (id: string, updates: Partial<SalesOrder>) => void;
@@ -51,8 +55,8 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 // Initial Mock Data
 const initialCustomers: Customer[] = [
-  { id: '1', name: 'João Silva', phone: '(11) 99999-9999', email: 'joao@email.com', address: 'Rua das Flores, Bairro Jardim', addressNumber: '123', cep: '01001-000', cpfOrCnpj: '123.456.789-00' },
-  { id: '2', name: 'Maria Souza', phone: '(11) 88888-8888', email: 'maria@email.com', address: 'Av Paulista, Centro', addressNumber: '1000', cep: '01310-100', cpfOrCnpj: '987.654.321-99' },
+  { id: '1', name: 'João Silva', phone: '(11) 99999-9999', email: 'joao@email.com', address: 'Rua das Flores, Bairro Jardim', addressNumber: '123', cep: '01001-000', cpfOrCnpj: '123.456.789-00', creditBalance: 50.00 },
+  { id: '2', name: 'Maria Souza', phone: '(11) 88888-8888', email: 'maria@email.com', address: 'Av Paulista, Centro', addressNumber: '1000', cep: '01310-100', cpfOrCnpj: '987.654.321-99', creditBalance: 0 },
 ];
 
 const initialProducts: Product[] = [
@@ -237,6 +241,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   };
 
+  const updateCustomerCredit = (customerId: string, amount: number, operation: 'add' | 'set') => {
+     setCustomers(prev => prev.map(c => {
+        if (c.id === customerId) {
+           const newBalance = operation === 'add' ? (c.creditBalance || 0) + amount : amount;
+           return { ...c, creditBalance: Math.max(0, newBalance) };
+        }
+        return c;
+     }));
+  };
+
   const addProduct = (p: Product) => setProducts([...products, p]);
   
   const updateProduct = (id: string, updates: Partial<Product>) => {
@@ -278,6 +292,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return os;
     }));
+  };
+
+  const processRefund = (originalTransaction: Transaction, refundType: 'money' | 'credit', customerId?: string) => {
+     // 1. Create Refund Transaction (Expense to neutralize the Income)
+     const refundTransaction: Transaction = {
+        id: `REF-${originalTransaction.id}-${Date.now()}`,
+        description: `Estorno (${refundType === 'money' ? 'Devolução' : 'Crédito'}) - Ref: ${originalTransaction.description}`,
+        amount: originalTransaction.amount,
+        type: TransactionType.EXPENSE, // Money out or liability created
+        date: new Date().toISOString(),
+        category: 'Estornos',
+        transactionDetails: {
+           ...originalTransaction.transactionDetails,
+           refunded: true
+        }
+     };
+     addTransaction(refundTransaction);
+
+     // 2. Mark original transaction as refunded (Optional in simple model, but good for UI)
+     setTransactions(prev => prev.map(t => 
+        t.id === originalTransaction.id 
+        ? { ...t, transactionDetails: { ...t.transactionDetails, refunded: true } }
+        : t
+     ));
+
+     // 3. If Credit Store, add balance to customer
+     if (refundType === 'credit' && customerId) {
+        updateCustomerCredit(customerId, originalTransaction.amount, 'add');
+     }
   };
 
   const updateStock = (productId: string, quantity: number) => {
@@ -414,7 +457,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <DataContext.Provider value={{
       customers, products, serviceOrders, transactions, salesOrders, settings,
       supplies, services, purchases, installmentPlans, payableAccounts, financialGoals,
-      addCustomer, updateCustomer, addProduct, updateProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, 
+      addCustomer, updateCustomer, updateCustomerCredit,
+      addProduct, updateProduct, addServiceOrder, updateServiceOrder, addTransaction, processRefund,
+      updateStock, 
       addSalesOrder, updateSalesOrder, updateSettings, 
       addSupply, updateSupplyStock, addService, addPurchase,
       addInstallmentPlan, payInstallment, updateInstallmentValue,

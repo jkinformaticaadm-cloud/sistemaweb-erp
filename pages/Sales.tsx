@@ -6,7 +6,7 @@ import {
   ShoppingCart, Plus, Minus, Trash2, Search, Zap, User, Package, Calendar, Clock, 
   CreditCard, Printer, CheckCircle, X, FileText, ArrowLeft, ChevronRight, 
   Monitor, Settings, LogOut, DollarSign, TrendingUp, TrendingDown, Lock, Unlock, Barcode,
-  PieChart, Eye, Receipt
+  PieChart, Eye, Receipt, Undo2, Coins
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
@@ -23,7 +23,7 @@ interface CashierMovement {
 }
 
 export const Sales: React.FC = () => {
-  const { products, customers, salesOrders, transactions, settings, addTransaction, updateStock, addSalesOrder, updateSalesOrder } = useData();
+  const { products, customers, salesOrders, transactions, settings, addTransaction, updateStock, addSalesOrder, updateSalesOrder, processRefund } = useData();
   
   // --- Global UI State ---
   const [activeTab, setActiveTab] = useState<SalesTab>('quick');
@@ -62,6 +62,10 @@ export const Sales: React.FC = () => {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [transactionToPrint, setTransactionToPrint] = useState<Transaction | null>(null);
   const [printFormat, setPrintFormat] = useState<'a4' | 'thermal'>('a4');
+
+  // --- Refund State ---
+  const [transactionToRefund, setTransactionToRefund] = useState<Transaction | null>(null);
+  const [refundMode, setRefundMode] = useState<'money' | 'credit'>('money');
 
   // --- Order Tab State ---
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -230,6 +234,27 @@ export const Sales: React.FC = () => {
      setIsReceiptModalOpen(true);
      // Close summary modal if open so they don't overlap strangely
      setIsSummaryModalOpen(false); 
+  };
+
+  // --- Refund Actions ---
+  const confirmRefund = () => {
+     if (!transactionToRefund) return;
+     
+     // Find customer ID if name matches (simplistic match for this context)
+     const matchedCustomer = customers.find(c => c.name === transactionToRefund.transactionDetails?.customerName);
+     
+     if (refundMode === 'credit' && !matchedCustomer) {
+        alert("Para gerar crédito em loja, o cliente precisa estar cadastrado. Estorne em dinheiro ou cadastre o cliente.");
+        return;
+     }
+
+     processRefund(transactionToRefund, refundMode, matchedCustomer?.id);
+     
+     // Close modals
+     setTransactionToRefund(null);
+     setIsSummaryModalOpen(false);
+     
+     alert(refundMode === 'money' ? "Estorno em dinheiro registrado." : `Crédito de R$ ${transactionToRefund.amount.toFixed(2)} adicionado ao cliente.`);
   };
 
   // --- Cashier Actions ---
@@ -932,7 +957,7 @@ export const Sales: React.FC = () => {
          </div>
       )}
 
-      {/* --- MODAL: DAILY SUMMARY --- */}
+      {/* --- MODAL: DAILY SUMMARY & SALES LIST --- */}
       {isSummaryModalOpen && (
          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
             <div className="bg-white rounded-xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -983,14 +1008,14 @@ export const Sales: React.FC = () => {
 
                      <div>
                         <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2"><Clock size={16}/> Últimas Vendas</h3>
-                        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm h-64 overflow-y-auto">
                            <table className="w-full text-left text-xs">
-                              <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
+                              <thead className="bg-gray-50 text-gray-500 font-bold uppercase sticky top-0">
                                  <tr>
                                     <th className="p-3">Hora</th>
                                     <th className="p-3">Cliente</th>
                                     <th className="p-3 text-right">Valor</th>
-                                    <th className="p-3 text-center">Ação</th>
+                                    <th className="p-3 text-center">Ações</th>
                                  </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-100">
@@ -1001,8 +1026,14 @@ export const Sales: React.FC = () => {
                                        <tr key={t.id} className="hover:bg-gray-50">
                                           <td className="p-3 text-gray-500">{new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
                                           <td className="p-3 font-medium text-gray-800">{t.transactionDetails?.customerName || 'Consumidor'}</td>
-                                          <td className="p-3 text-right font-bold text-green-600">R$ {t.amount.toFixed(2)}</td>
-                                          <td className="p-3 text-center">
+                                          <td className="p-3 text-right font-bold text-green-600">
+                                             {t.transactionDetails?.refunded ? (
+                                                <span className="text-red-500 line-through decoration-red-500">R$ {t.amount.toFixed(2)}</span>
+                                             ) : (
+                                                <span>R$ {t.amount.toFixed(2)}</span>
+                                             )}
+                                          </td>
+                                          <td className="p-3 text-center flex justify-center gap-1">
                                              <button 
                                                 onClick={() => openReceiptFromList(t)}
                                                 className="p-1 hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition-colors"
@@ -1010,6 +1041,15 @@ export const Sales: React.FC = () => {
                                              >
                                                 <Eye size={16}/>
                                              </button>
+                                             {!t.transactionDetails?.refunded && (
+                                                <button 
+                                                   onClick={() => setTransactionToRefund(t)}
+                                                   className="p-1 hover:bg-red-50 rounded text-red-400 hover:text-red-600 transition-colors"
+                                                   title="Estornar Venda"
+                                                >
+                                                   <Undo2 size={16}/>
+                                                </button>
+                                             )}
                                           </td>
                                        </tr>
                                     ))
@@ -1019,6 +1059,63 @@ export const Sales: React.FC = () => {
                         </div>
                      </div>
                   </div>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* --- MODAL: REFUND CONFIRMATION --- */}
+      {transactionToRefund && (
+         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-2xl animate-fade-in">
+               <h2 className="text-xl font-bold text-gray-800 mb-2">Estornar Venda</h2>
+               <p className="text-sm text-gray-500 mb-6">
+                  Selecione como deseja devolver o valor de <strong>R$ {transactionToRefund.amount.toFixed(2)}</strong> ao cliente.
+               </p>
+
+               <div className="space-y-3 mb-6">
+                  <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${refundMode === 'money' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                     <input 
+                        type="radio" 
+                        name="refundMode" 
+                        className="w-5 h-5 text-red-600"
+                        checked={refundMode === 'money'}
+                        onChange={() => setRefundMode('money')}
+                     />
+                     <div>
+                        <span className="font-bold text-gray-800 block">Devolver Dinheiro</span>
+                        <span className="text-xs text-gray-500">Saída direta do caixa (Dinheiro/Pix)</span>
+                     </div>
+                  </label>
+
+                  <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${refundMode === 'credit' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                     <input 
+                        type="radio" 
+                        name="refundMode" 
+                        className="w-5 h-5 text-blue-600"
+                        checked={refundMode === 'credit'}
+                        onChange={() => setRefundMode('credit')}
+                     />
+                     <div>
+                        <span className="font-bold text-gray-800 block flex items-center gap-2"><Coins size={16}/> Gerar Crédito em Loja</span>
+                        <span className="text-xs text-gray-500">Adiciona ao saldo do cadastro do cliente</span>
+                     </div>
+                  </label>
+               </div>
+
+               <div className="flex justify-end gap-2">
+                  <button 
+                     onClick={() => setTransactionToRefund(null)}
+                     className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                  >
+                     Cancelar
+                  </button>
+                  <button 
+                     onClick={confirmRefund}
+                     className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 shadow-md"
+                  >
+                     Confirmar Estorno
+                  </button>
                </div>
             </div>
          </div>

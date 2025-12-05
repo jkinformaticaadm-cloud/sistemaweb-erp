@@ -32,6 +32,7 @@ export interface Customer {
   addressNumber?: string;
   cep?: string;
   cpfOrCnpj?: string;
+  creditBalance?: number; // Saldo de crédito em loja
 }
 
 export interface Product {
@@ -125,6 +126,7 @@ export interface TransactionDetails {
   deviceBrand?: string;
   items?: CartItem[];
   paymentMethod?: string;
+  refunded?: boolean; // Flag to mark if transaction was refunded
 }
 
 export interface Transaction {

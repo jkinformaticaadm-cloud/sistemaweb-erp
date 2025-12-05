@@ -5,11 +5,11 @@ import { Customer } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { 
   UserPlus, Search, Mail, Phone, MapPin, Loader2, Edit, Printer, X, User, Wrench, 
-  History, ShoppingBag, FileText, CreditCard, Calendar, CheckCircle, AlertCircle 
+  History, ShoppingBag, FileText, CreditCard, Calendar, CheckCircle, AlertCircle, Coins, RotateCcw 
 } from 'lucide-react';
 
 export const Customers: React.FC = () => {
-  const { customers, addCustomer, updateCustomer, serviceOrders, transactions, installmentPlans } = useData();
+  const { customers, addCustomer, updateCustomer, updateCustomerCredit, serviceOrders, transactions, installmentPlans } = useData();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -57,7 +57,8 @@ export const Customers: React.FC = () => {
         email,
         address,
         addressNumber,
-        cep
+        cep,
+        creditBalance: 0
       };
       addCustomer(newCustomer);
     }
@@ -89,6 +90,12 @@ export const Customers: React.FC = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleResetCredit = (customerId: string, currentBalance: number) => {
+     if (confirm(`Deseja zerar o crédito de R$ ${currentBalance.toFixed(2)} deste cliente?`)) {
+        updateCustomerCredit(customerId, 0, 'set');
+     }
   };
 
   const filtered = customers.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone.includes(searchTerm));
@@ -170,13 +177,22 @@ export const Customers: React.FC = () => {
              </div>
              
              {/* Customer Header Info */}
-             <div className="p-6 bg-gray-50 border-b border-gray-100 shrink-0">
-                 <h1 className="text-2xl font-bold text-gray-800">{historyCustomer.name}</h1>
-                 <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
-                    <span className="flex items-center gap-1"><Phone size={14}/> {historyCustomer.phone}</span>
-                    {historyCustomer.email && <span className="flex items-center gap-1"><Mail size={14}/> {historyCustomer.email}</span>}
-                    <span className="flex items-center gap-1"><MapPin size={14}/> {historyCustomer.address}</span>
+             <div className="p-6 bg-gray-50 border-b border-gray-100 shrink-0 flex justify-between items-center">
+                 <div>
+                    <h1 className="text-2xl font-bold text-gray-800">{historyCustomer.name}</h1>
+                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
+                        <span className="flex items-center gap-1"><Phone size={14}/> {historyCustomer.phone}</span>
+                        {historyCustomer.email && <span className="flex items-center gap-1"><Mail size={14}/> {historyCustomer.email}</span>}
+                        <span className="flex items-center gap-1"><MapPin size={14}/> {historyCustomer.address}</span>
+                    </div>
                  </div>
+                 
+                 {(historyCustomer.creditBalance || 0) > 0 && (
+                    <div className="bg-green-100 text-green-800 px-4 py-3 rounded-xl border border-green-200">
+                        <p className="text-xs font-bold uppercase mb-1">Crédito em Loja</p>
+                        <p className="text-2xl font-bold">R$ {historyCustomer.creditBalance?.toFixed(2)}</p>
+                    </div>
+                 )}
              </div>
 
              {/* Tabs */}
@@ -423,13 +439,14 @@ export const Customers: React.FC = () => {
                   <th className="px-6 py-4">Nome / ID</th>
                   <th className="px-6 py-4">Contato</th>
                   <th className="px-6 py-4">Endereço</th>
+                  <th className="px-6 py-4 text-center">Crédito</th>
                   <th className="px-6 py-4 text-center">Ações</th>
                </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
                {filtered.length === 0 ? (
                   <tr>
-                     <td colSpan={4} className="p-8 text-center text-gray-400">Nenhum cliente encontrado.</td>
+                     <td colSpan={5} className="p-8 text-center text-gray-400">Nenhum cliente encontrado.</td>
                   </tr>
                ) : (
                   filtered.map(customer => (
@@ -454,6 +471,20 @@ export const Customers: React.FC = () => {
                                  {customer.cep && <span className="block text-xs text-gray-400">{customer.cep}</span>}
                               </span>
                            </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                           {(customer.creditBalance || 0) > 0 ? (
+                              <div className="flex items-center justify-center gap-2">
+                                 <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">R$ {customer.creditBalance?.toFixed(2)}</span>
+                                 <button 
+                                    onClick={() => handleResetCredit(customer.id, customer.creditBalance!)}
+                                    className="text-gray-400 hover:text-red-500" 
+                                    title="Zerar Crédito"
+                                 >
+                                    <RotateCcw size={14}/>
+                                 </button>
+                              </div>
+                           ) : <span className="text-gray-400 text-xs">-</span>}
                         </td>
                         <td className="px-6 py-4">
                            <div className="flex justify-center gap-2">
