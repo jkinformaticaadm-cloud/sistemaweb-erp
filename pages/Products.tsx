@@ -13,6 +13,11 @@ const ACCESSORY_CATEGORIES = [
   'Película 3D',
   'Película Privacidade',
   'Informática',
+  'Fone de ouvido',
+  'Carregador',
+  'Caixa de som',
+  'Maquininha',
+  'Diversos',
   'Outros'
 ];
 
