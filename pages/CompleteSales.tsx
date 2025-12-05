@@ -551,8 +551,8 @@ export const CompleteSales: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-       {/* Header */}
-       <div className="flex justify-between items-center bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+       {/* Header - Hidden on Print */}
+       <div className="flex justify-between items-center bg-white p-6 rounded-xl border border-gray-100 shadow-sm print:hidden">
           <div>
              <h2 className="text-xl font-bold text-gray-800">Vendas Completas</h2>
              <p className="text-sm text-gray-500">Gestão detalhada de pedidos de venda com garantia e controle de IMEI.</p>
@@ -565,8 +565,8 @@ export const CompleteSales: React.FC = () => {
           </button>
        </div>
 
-       {/* Search */}
-       <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex items-center gap-2">
+       {/* Search - Hidden on Print */}
+       <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex items-center gap-2 print:hidden">
           <Search size={20} className="text-gray-400 ml-2" />
           <input 
              type="text" 
@@ -577,8 +577,8 @@ export const CompleteSales: React.FC = () => {
           />
        </div>
 
-       {/* List */}
-       <div className="grid grid-cols-1 gap-4">
+       {/* List - Hidden on Print */}
+       <div className="grid grid-cols-1 gap-4 print:hidden">
           {filteredSales.length === 0 ? (
              <div className="text-center p-12 bg-white rounded-xl border border-dashed border-gray-300 text-gray-400">
                 <ShoppingBag size={48} className="mx-auto mb-3 opacity-20"/>

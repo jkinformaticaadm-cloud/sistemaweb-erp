@@ -1108,8 +1108,8 @@ export const ServiceOrders: React.FC = () => {
   // --- Main Render ---
   return (
     <div className="space-y-6">
-       {/* Top Navigation Tabs */}
-       <div className="flex overflow-x-auto gap-2 pb-2 border-b border-gray-200">
+       {/* Top Navigation Tabs - Hidden on Print */}
+       <div className="flex overflow-x-auto gap-2 pb-2 border-b border-gray-200 print:hidden">
           <button 
             onClick={() => setActiveTab('dashboard')} 
             className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors flex items-center gap-2
@@ -1147,8 +1147,8 @@ export const ServiceOrders: React.FC = () => {
           </button>
        </div>
 
-       {/* Tab Content */}
-       <div className="min-h-[500px]">
+       {/* Tab Content - Hidden on Print */}
+       <div className="min-h-[500px] print:hidden">
           {activeTab === 'dashboard' && <DashboardTab />}
           {activeTab === 'list' && <OSListTab />}
           {activeTab === 'purchases' && <PurchasesTab />}

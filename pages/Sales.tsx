@@ -395,8 +395,8 @@ export const Sales: React.FC = () => {
   return (
     <div className="flex h-[calc(100vh-100px)] gap-4 bg-gray-100 -m-8 p-4"> {/* Negative margin to break out of default padding if needed, or adjust parent */}
       
-      {/* 1. PDV Sidebar Actions (Left Vertical Bar) */}
-      <div className="w-20 bg-gray-900 rounded-xl flex flex-col items-center py-6 gap-6 shadow-xl z-10">
+      {/* 1. PDV Sidebar Actions (Left Vertical Bar) - Hidden on Print */}
+      <div className="w-20 bg-gray-900 rounded-xl flex flex-col items-center py-6 gap-6 shadow-xl z-10 print:hidden">
          <button onClick={() => resetPDV()} className="group flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors" title="Novo PDV (Shift + N)">
             <div className="p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-900/50 group-hover:scale-110 transition-transform">
                <ShoppingCart size={24} />
@@ -443,8 +443,8 @@ export const Sales: React.FC = () => {
          </button>
       </div>
 
-      {/* 2. Main Content Area */}
-      <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative">
+      {/* 2. Main Content Area - Hidden on Print */}
+      <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative print:hidden">
          
          {/* Top Header */}
          <div className="h-14 border-b border-gray-200 flex items-center justify-between px-6 bg-white">
