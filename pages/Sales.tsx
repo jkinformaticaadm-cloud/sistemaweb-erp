@@ -910,7 +910,7 @@ export const Sales: React.FC = () => {
                         value={stockSearchTerm}
                         onChange={e => setStockSearchTerm(e.target.value)}
                         autoFocus
-                      />
+                     />
                    </div>
                </div>
 
@@ -1123,11 +1123,11 @@ export const Sales: React.FC = () => {
 
       {/* --- MODAL: RECEIPT / PRINTING --- */}
       {isReceiptModalOpen && transactionToPrint && (
-         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm print:bg-white print:p-0 print:block">
-            <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:shadow-none print:w-full print:max-w-none print:h-auto print:rounded-none">
+         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm print:fixed print:inset-0 print:z-[9999] print:bg-white print:p-0 print:block">
+            <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:shadow-none print:w-full print:max-w-none print:h-auto print:rounded-none print:absolute print:top-0 print:left-0">
                
                {/* Print Actions Header (Hidden when printing) */}
-               <div className="bg-gray-800 text-white p-4 flex justify-between items-center shrink-0 print:hidden">
+               <div className="bg-gray-800 text-white p-4 flex justify-between items-center shrink-0 print:hidden sticky top-0 z-10">
                   <div className="flex items-center gap-2">
                      <Printer size={20} />
                      <h2 className="font-bold text-lg">Comprovante de Venda</h2>
@@ -1167,11 +1167,10 @@ export const Sales: React.FC = () => {
       <style>{`
          @media print {
             body > *:not(.fixed) { display: none !important; }
-            .fixed { position: absolute !important; inset: 0 !important; background: white !important; height: auto !important; z-index: 9999 !important; }
-            .fixed .bg-white { box-shadow: none !important; max-width: none !important; width: 100% !important; height: auto !important; overflow: visible !important; }
-            .print\\:hidden { display: none !important; }
+            .print\\:fixed { position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh; }
+            .print\\:absolute { position: absolute !important; }
             .print\\:block { display: block !important; }
-            .print\\:w-full { width: 100% !important; }
+            .print\\:hidden { display: none !important; }
          }
       `}</style>
 

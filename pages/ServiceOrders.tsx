@@ -195,8 +195,8 @@ export const ServiceOrders: React.FC = () => {
     const serviceItems = printingOS.items.filter(i => i.type === 'service');
 
     return (
-       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:p-0 print:bg-white print:static print:block">
-          <div className="bg-white w-full max-w-4xl min-h-[90vh] shadow-2xl overflow-y-auto print:shadow-none print:w-full print:h-auto print:overflow-visible">
+       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:fixed print:inset-0 print:z-[9999] print:bg-white print:p-0 print:block">
+          <div className="bg-white w-full max-w-4xl min-h-[90vh] shadow-2xl overflow-y-auto print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible print:absolute print:top-0 print:left-0">
               
               {/* Header Actions (Hidden on Print) */}
               <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden sticky top-0 z-10">
@@ -210,7 +210,7 @@ export const ServiceOrders: React.FC = () => {
               </div>
 
               {/* Printable Content (A4 Style) */}
-              <div className="p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-0 print:text-xs">
+              <div className="p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs">
                  
                  {/* 1. Header */}
                  <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">

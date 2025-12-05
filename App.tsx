@@ -21,9 +21,9 @@ const App: React.FC = () => {
         <div className="flex bg-gray-50 min-h-screen font-sans">
           <Sidebar />
           
-          <main className="flex-1 ml-64 min-h-screen flex flex-col">
+          <main className="flex-1 ml-64 min-h-screen flex flex-col print:ml-0 print:w-full">
             {/* Top Bar */}
-            <header className="h-16 bg-white border-b border-gray-200 flex justify-end items-center px-8 shadow-sm sticky top-0 z-10">
+            <header className="h-16 bg-white border-b border-gray-200 flex justify-end items-center px-8 shadow-sm sticky top-0 z-10 print:hidden">
               <div className="flex items-center gap-6">
                 <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
                   <Bell size={20} />
@@ -42,7 +42,7 @@ const App: React.FC = () => {
             </header>
 
             {/* Content */}
-            <div className="p-8">
+            <div className="p-8 print:p-0">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/vendas" element={<Sales />} />

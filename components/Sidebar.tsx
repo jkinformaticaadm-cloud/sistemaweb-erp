@@ -17,7 +17,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 bg-primary text-gray-300 flex flex-col h-screen fixed left-0 top-0 z-10 transition-transform">
+    <aside className="w-64 bg-primary text-gray-300 flex flex-col h-screen fixed left-0 top-0 z-10 transition-transform print:hidden">
       <div className="p-6 border-b border-gray-700 flex items-center gap-3">
         <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white font-bold">
           TF
