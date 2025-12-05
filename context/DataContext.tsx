@@ -55,8 +55,42 @@ const initialCustomers: Customer[] = [
 ];
 
 const initialProducts: Product[] = [
-  { id: '1', name: 'Tela iPhone 13 Original', price: 1200, cost: 600, stock: 5, category: 'Peças' },
-  { id: '2', name: 'Bateria Samsung S20', price: 350, cost: 150, stock: 10, category: 'Peças' },
+  { 
+    id: '1', 
+    name: 'Tela iPhone 13 Original', 
+    price: 1200, 
+    cost: 600, 
+    stock: 5, 
+    category: 'Peças',
+    compatibility: 'iPhone 13',
+    minStock: 2,
+    maxStock: 10
+  },
+  { 
+    id: '2', 
+    name: 'iPhone 11 64GB', 
+    price: 2500, 
+    cost: 1800, 
+    stock: 2, 
+    category: 'Aparelhos',
+    brand: 'Apple',
+    model: 'iPhone 11',
+    storage: '64GB',
+    color: 'Preto',
+    condition: 'Usado',
+    imei: '35489000000001'
+  },
+  {
+    id: '3',
+    name: 'Capa TPU Transparente',
+    price: 30,
+    cost: 5,
+    stock: 50,
+    category: 'Capas TPU',
+    compatibility: 'Samsung S20',
+    minStock: 10,
+    maxStock: 100
+  }
 ];
 
 const initialSupplies: Supply[] = [

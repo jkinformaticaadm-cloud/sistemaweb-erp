@@ -36,10 +36,24 @@ export interface Customer {
 export interface Product {
   id: string;
   name: string;
-  price: number;
-  cost: number;
+  price: number; // Valor de Venda
+  cost: number; // Valor de Custo
   stock: number;
   category: string;
+  
+  // Device Specific Fields
+  brand?: string;
+  model?: string;
+  imei?: string;
+  serialNumber?: string;
+  color?: string;
+  storage?: string;
+  condition?: 'Novo' | 'Usado';
+
+  // Accessory Specific Fields
+  compatibility?: string;
+  minStock?: number;
+  maxStock?: number;
 }
 
 export interface Supply {
