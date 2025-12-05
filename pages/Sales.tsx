@@ -6,7 +6,7 @@ import {
   ShoppingCart, Plus, Minus, Trash2, Search, Zap, User, Package, Calendar, Clock, 
   CreditCard, Printer, CheckCircle, X, FileText, ArrowLeft, ChevronRight, 
   Monitor, Settings, LogOut, DollarSign, TrendingUp, TrendingDown, Lock, Unlock, Barcode,
-  PieChart
+  PieChart, Eye, Receipt
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
@@ -58,6 +58,11 @@ export const Sales: React.FC = () => {
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
   const [stockSearchTerm, setStockSearchTerm] = useState('');
 
+  // --- Printing State ---
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [transactionToPrint, setTransactionToPrint] = useState<Transaction | null>(null);
+  const [printFormat, setPrintFormat] = useState<'a4' | 'thermal'>('a4');
+
   // --- Order Tab State ---
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [orderDeliveryDate, setOrderDeliveryDate] = useState('');
@@ -90,7 +95,7 @@ export const Sales: React.FC = () => {
       t.type === TransactionType.INCOME && 
       t.category === 'Vendas' &&
       new Date(t.date).toLocaleDateString() === today
-    );
+    ).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort newest first
 
     const total = todaySales.reduce((acc, t) => acc + t.amount, 0);
     const count = todaySales.length;
@@ -104,7 +109,7 @@ export const Sales: React.FC = () => {
 
     const chartData = Object.entries(paymentMethods).map(([name, value]) => ({ name, value }));
 
-    return { total, count, avgTicket, chartData, recent: todaySales.slice(0, 5) };
+    return { total, count, avgTicket, chartData, recent: todaySales };
   }, [transactions]);
 
   const cartTotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0), [cart]);
@@ -128,7 +133,6 @@ export const Sales: React.FC = () => {
     
     // Close stock modal if open to allow adding
     if (isStockModalOpen) {
-       // Optional: Keep it open or close it. Let's show a toast or feedback, for now just close to show impact on cart
        setIsStockModalOpen(false); 
     }
   };
@@ -177,15 +181,19 @@ export const Sales: React.FC = () => {
       category: 'Vendas',
       transactionDetails: {
         customerName: customerName,
+        customerPhone: selectedCustomerId ? customers.find(c => c.id === selectedCustomerId)?.phone : tempCustomer.phone,
         paymentMethod: paymentMethod,
         items: [...cart],
       }
     };
 
+    // 1. Save Transaction
     addTransaction(transaction);
+    
+    // 2. Update Stock
     cart.forEach(item => updateStock(item.id, item.quantity));
 
-    // Add to cashier movement
+    // 3. Update Cashier
     const movement: CashierMovement = {
       id: Date.now().toString(),
       type: 'sale',
@@ -196,7 +204,11 @@ export const Sales: React.FC = () => {
     setCashierMovements(prev => [movement, ...prev]);
     setCashierBalance(prev => prev + finalTotal);
 
-    alert('Venda realizada com sucesso!');
+    // 4. Open Print Modal with this transaction
+    setTransactionToPrint(transaction);
+    setIsReceiptModalOpen(true);
+
+    // 5. Reset Form Data (UI)
     resetPDV();
   };
 
@@ -207,6 +219,17 @@ export const Sales: React.FC = () => {
     setReceivedAmount('');
     setSelectedCustomerId('');
     setTempCustomer({ name: '', phone: '', address: '' });
+  };
+
+  const handlePrintReceipt = () => {
+    window.print();
+  };
+
+  const openReceiptFromList = (t: Transaction) => {
+     setTransactionToPrint(t);
+     setIsReceiptModalOpen(true);
+     // Close summary modal if open so they don't overlap strangely
+     setIsSummaryModalOpen(false); 
   };
 
   // --- Cashier Actions ---
@@ -245,6 +268,81 @@ export const Sales: React.FC = () => {
     setCashierInputDesc('');
     if (cashierTab === 'open' || cashierTab === 'close') setIsCashierModalOpen(false);
     else setCashierTab('status');
+  };
+
+  // --- COMPONENTS ---
+  
+  const ReceiptContent = () => {
+     if (!transactionToPrint) return null;
+     
+     const { id, date, amount, transactionDetails } = transactionToPrint;
+     const items = transactionDetails?.items || [];
+     const isThermal = printFormat === 'thermal';
+
+     return (
+        <div className={`mx-auto bg-white text-black p-4 ${isThermal ? 'w-[80mm] text-xs font-mono' : 'w-full max-w-[210mm] p-10 font-sans'}`}>
+           
+           {/* Header */}
+           <div className={`text-center mb-6 border-b border-black pb-4 ${isThermal ? 'border-dashed' : ''}`}>
+              <h2 className={`font-bold uppercase ${isThermal ? 'text-sm' : 'text-xl'}`}>{settings.companyName}</h2>
+              <p>{settings.address}</p>
+              <p>Tel: {settings.phone}</p>
+              <p className="mt-2 font-bold">COMPROVANTE DE VENDA</p>
+           </div>
+
+           {/* Meta Info */}
+           <div className="mb-4 text-xs">
+              <p>Data: {new Date(date).toLocaleDateString()} {new Date(date).toLocaleTimeString()}</p>
+              <p>Venda: #{id}</p>
+              {transactionDetails?.customerName && (
+                 <p>Cliente: {transactionDetails.customerName}</p>
+              )}
+           </div>
+
+           {/* Items */}
+           <div className={`mb-4 border-b border-black pb-4 ${isThermal ? 'border-dashed' : ''}`}>
+              <table className="w-full text-left">
+                 <thead>
+                    <tr className="uppercase border-b border-black">
+                       <th className="py-1">Qtd</th>
+                       <th className="py-1">Item</th>
+                       <th className="py-1 text-right">Vl. Total</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                    {items.map((item, idx) => (
+                       <tr key={idx}>
+                          <td className="py-1 align-top" width="10%">{item.quantity}x</td>
+                          <td className="py-1 align-top">
+                             {item.name}
+                             <div className="text-[10px] text-gray-500">Unit: {item.price.toFixed(2)}</div>
+                          </td>
+                          <td className="py-1 align-top text-right" width="25%">{(item.price * item.quantity).toFixed(2)}</td>
+                       </tr>
+                    ))}
+                 </tbody>
+              </table>
+           </div>
+
+           {/* Totals */}
+           <div className={`flex flex-col gap-1 text-right ${isThermal ? 'text-xs' : 'text-sm'}`}>
+              <div className="flex justify-between font-bold text-base">
+                 <span>TOTAL</span>
+                 <span>R$ {amount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-xs mt-2">
+                 <span>Forma de Pagamento:</span>
+                 <span>{transactionDetails?.paymentMethod}</span>
+              </div>
+           </div>
+
+           {/* Footer */}
+           <div className="mt-8 text-center text-[10px]">
+              <p>Obrigado pela preferência!</p>
+              <p>Volte sempre.</p>
+           </div>
+        </div>
+     );
   };
 
   // --- Main Render ---
@@ -837,7 +935,7 @@ export const Sales: React.FC = () => {
       {/* --- MODAL: DAILY SUMMARY --- */}
       {isSummaryModalOpen && (
          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-white rounded-xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                <div className="bg-gray-800 text-white p-4 flex justify-between items-center shrink-0">
                   <div className="flex items-center gap-2">
                      <FileText size={20} />
@@ -864,7 +962,7 @@ export const Sales: React.FC = () => {
                   </div>
 
                   {/* Charts & Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                      <div>
                         <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2"><PieChart size={16}/> Formas de Pagamento</h3>
                         <div className="bg-white border border-gray-100 rounded-xl p-4 h-64 shadow-sm">
@@ -887,15 +985,32 @@ export const Sales: React.FC = () => {
                         <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2"><Clock size={16}/> Últimas Vendas</h3>
                         <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
                            <table className="w-full text-left text-xs">
+                              <thead className="bg-gray-50 text-gray-500 font-bold uppercase">
+                                 <tr>
+                                    <th className="p-3">Hora</th>
+                                    <th className="p-3">Cliente</th>
+                                    <th className="p-3 text-right">Valor</th>
+                                    <th className="p-3 text-center">Ação</th>
+                                 </tr>
+                              </thead>
                               <tbody className="divide-y divide-gray-100">
                                  {summaryData.recent.length === 0 ? (
-                                    <tr><td className="p-4 text-center text-gray-400">Nenhuma venda hoje.</td></tr>
+                                    <tr><td colSpan={4} className="p-4 text-center text-gray-400">Nenhuma venda hoje.</td></tr>
                                  ) : (
                                     summaryData.recent.map(t => (
                                        <tr key={t.id} className="hover:bg-gray-50">
                                           <td className="p-3 text-gray-500">{new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-                                          <td className="p-3 font-medium text-gray-800">{t.description}</td>
+                                          <td className="p-3 font-medium text-gray-800">{t.transactionDetails?.customerName || 'Consumidor'}</td>
                                           <td className="p-3 text-right font-bold text-green-600">R$ {t.amount.toFixed(2)}</td>
+                                          <td className="p-3 text-center">
+                                             <button 
+                                                onClick={() => openReceiptFromList(t)}
+                                                className="p-1 hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition-colors"
+                                                title="Ver Comprovante"
+                                             >
+                                                <Eye size={16}/>
+                                             </button>
+                                          </td>
                                        </tr>
                                     ))
                                  )}
@@ -908,6 +1023,61 @@ export const Sales: React.FC = () => {
             </div>
          </div>
       )}
+
+      {/* --- MODAL: RECEIPT / PRINTING --- */}
+      {isReceiptModalOpen && transactionToPrint && (
+         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm print:bg-white print:p-0 print:block">
+            <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:shadow-none print:w-full print:max-w-none print:h-auto print:rounded-none">
+               
+               {/* Print Actions Header (Hidden when printing) */}
+               <div className="bg-gray-800 text-white p-4 flex justify-between items-center shrink-0 print:hidden">
+                  <div className="flex items-center gap-2">
+                     <Printer size={20} />
+                     <h2 className="font-bold text-lg">Comprovante de Venda</h2>
+                  </div>
+                  <div className="flex items-center gap-3">
+                     <select 
+                        className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm outline-none"
+                        value={printFormat}
+                        onChange={e => setPrintFormat(e.target.value as any)}
+                     >
+                        <option value="a4">Papel A4 (Padrão)</option>
+                        <option value="thermal">Térmica (80mm/58mm)</option>
+                     </select>
+                     <button 
+                        onClick={handlePrintReceipt}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg font-bold text-sm flex items-center gap-2"
+                     >
+                        <Printer size={16}/> Imprimir
+                     </button>
+                     <button onClick={() => setIsReceiptModalOpen(false)} className="hover:text-gray-300 ml-2"><X size={24}/></button>
+                  </div>
+               </div>
+
+               {/* Receipt Content Wrapper */}
+               <div className="overflow-y-auto bg-gray-100 p-8 flex justify-center print:p-0 print:bg-white print:overflow-visible">
+                   <div className={`bg-white shadow-lg print:shadow-none transition-all duration-300 
+                      ${printFormat === 'a4' ? 'w-full max-w-[210mm] min-h-[297mm] p-10 print:w-full print:max-w-none' : 'w-[80mm] min-h-[100mm] p-2 print:w-full'} 
+                   `}>
+                      <ReceiptContent />
+                   </div>
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* Print Styles */}
+      <style>{`
+         @media print {
+            body > *:not(.fixed) { display: none !important; }
+            .fixed { position: absolute !important; inset: 0 !important; background: white !important; height: auto !important; z-index: 9999 !important; }
+            .fixed .bg-white { box-shadow: none !important; max-width: none !important; width: 100% !important; height: auto !important; overflow: visible !important; }
+            .print\\:hidden { display: none !important; }
+            .print\\:block { display: block !important; }
+            .print\\:w-full { width: 100% !important; }
+         }
+      `}</style>
+
     </div>
   );
 };
