@@ -5,8 +5,10 @@ import { Product, CartItem, Transaction, TransactionType, SalesOrder, OrderStatu
 import { 
   ShoppingCart, Plus, Minus, Trash2, Search, Zap, User, Package, Calendar, Clock, 
   CreditCard, Printer, CheckCircle, X, FileText, ArrowLeft, ChevronRight, 
-  Monitor, Settings, LogOut, DollarSign, TrendingUp, TrendingDown, Lock, Unlock, Barcode
+  Monitor, Settings, LogOut, DollarSign, TrendingUp, TrendingDown, Lock, Unlock, Barcode,
+  PieChart
 } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
 type SalesTab = 'quick' | 'orders';
 type PDVStep = 'products' | 'customer' | 'payment';
@@ -21,7 +23,7 @@ interface CashierMovement {
 }
 
 export const Sales: React.FC = () => {
-  const { products, customers, salesOrders, settings, addTransaction, updateStock, addSalesOrder, updateSalesOrder } = useData();
+  const { products, customers, salesOrders, transactions, settings, addTransaction, updateStock, addSalesOrder, updateSalesOrder } = useData();
   
   // --- Global UI State ---
   const [activeTab, setActiveTab] = useState<SalesTab>('quick');
@@ -51,6 +53,11 @@ export const Sales: React.FC = () => {
   const [cashierInputAmount, setCashierInputAmount] = useState('');
   const [cashierInputDesc, setCashierInputDesc] = useState('');
 
+  // --- New Modals State ---
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [stockSearchTerm, setStockSearchTerm] = useState('');
+
   // --- Order Tab State ---
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [orderDeliveryDate, setOrderDeliveryDate] = useState('');
@@ -65,6 +72,40 @@ export const Sales: React.FC = () => {
       p.id.includes(searchTerm)
     );
   }, [searchTerm, products]);
+
+  // Stock Modal Filter
+  const stockList = useMemo(() => {
+    if (!stockSearchTerm) return products;
+    return products.filter(p => 
+      p.name.toLowerCase().includes(stockSearchTerm.toLowerCase()) || 
+      p.id.includes(stockSearchTerm) ||
+      p.category.toLowerCase().includes(stockSearchTerm.toLowerCase())
+    );
+  }, [products, stockSearchTerm]);
+
+  // Summary Data Calculation
+  const summaryData = useMemo(() => {
+    const today = new Date().toLocaleDateString();
+    const todaySales = transactions.filter(t => 
+      t.type === TransactionType.INCOME && 
+      t.category === 'Vendas' &&
+      new Date(t.date).toLocaleDateString() === today
+    );
+
+    const total = todaySales.reduce((acc, t) => acc + t.amount, 0);
+    const count = todaySales.length;
+    const avgTicket = count > 0 ? total / count : 0;
+
+    const paymentMethods: Record<string, number> = {};
+    todaySales.forEach(t => {
+       const method = t.transactionDetails?.paymentMethod || 'Outros';
+       paymentMethods[method] = (paymentMethods[method] || 0) + t.amount;
+    });
+
+    const chartData = Object.entries(paymentMethods).map(([name, value]) => ({ name, value }));
+
+    return { total, count, avgTicket, chartData, recent: todaySales.slice(0, 5) };
+  }, [transactions]);
 
   const cartTotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0), [cart]);
   const finalTotal = Math.max(0, cartTotal - discount);
@@ -83,7 +124,13 @@ export const Sales: React.FC = () => {
     });
     setSearchTerm('');
     setIsSearching(false);
-    searchInputRef.current?.focus();
+    if(searchInputRef.current) searchInputRef.current.focus();
+    
+    // Close stock modal if open to allow adding
+    if (isStockModalOpen) {
+       // Optional: Keep it open or close it. Let's show a toast or feedback, for now just close to show impact on cart
+       setIsStockModalOpen(false); 
+    }
   };
 
   const removeFromCart = (id: string) => {
@@ -234,14 +281,22 @@ export const Sales: React.FC = () => {
             <span className="text-[10px] font-bold">PDV</span>
          </button>
 
-         <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors" title="Estoque (Shift + E)">
+         <button 
+            onClick={() => setIsStockModalOpen(true)}
+            className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors" 
+            title="Estoque (Shift + E)"
+         >
             <div className="p-3 hover:bg-gray-800 rounded-xl transition-colors">
                <Package size={24} />
             </div>
             <span className="text-[10px]">Estoque</span>
          </button>
 
-         <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors" title="Resumo (Shift + R)">
+         <button 
+            onClick={() => setIsSummaryModalOpen(true)}
+            className="flex flex-col items-center gap-1 text-gray-400 hover:text-white transition-colors" 
+            title="Resumo (Shift + R)"
+         >
             <div className="p-3 hover:bg-gray-800 rounded-xl transition-colors">
                <FileText size={24} />
             </div>
@@ -575,11 +630,10 @@ export const Sales: React.FC = () => {
          </div>
       </div>
 
-      {/* Modals */}
+      {/* --- MODAL: CASHIER MANAGEMENT --- */}
       {isCashierModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Header */}
             <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Monitor size={20} />
@@ -588,7 +642,6 @@ export const Sales: React.FC = () => {
               <button onClick={() => setIsCashierModalOpen(false)} className="hover:text-gray-300"><X size={20}/></button>
             </div>
             
-            {/* Tabs */}
             <div className="flex border-b border-gray-200 bg-gray-50">
               <button onClick={() => setCashierTab('status')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'status' ? 'bg-white text-blue-600 border-t-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>Resumo</button>
               {cashierStatus === 'closed' ? (
@@ -602,7 +655,6 @@ export const Sales: React.FC = () => {
               )}
             </div>
 
-            {/* Content */}
             <div className="p-6 overflow-y-auto flex-1">
               {cashierTab === 'status' && (
                 <div className="space-y-6">
@@ -712,6 +764,149 @@ export const Sales: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* --- MODAL: STOCK SEARCH --- */}
+      {isStockModalOpen && (
+         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+               <div className="bg-gray-800 text-white p-4 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                     <Package size={20} />
+                     <h2 className="font-bold text-lg">Consulta de Estoque</h2>
+                  </div>
+                  <button onClick={() => setIsStockModalOpen(false)} className="hover:text-gray-300"><X size={20}/></button>
+               </div>
+               
+               <div className="p-4 border-b border-gray-200 bg-gray-50">
+                   <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
+                      <input 
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                        placeholder="Buscar por nome, categoria ou código..."
+                        value={stockSearchTerm}
+                        onChange={e => setStockSearchTerm(e.target.value)}
+                        autoFocus
+                      />
+                   </div>
+               </div>
+
+               <div className="overflow-y-auto flex-1 p-4">
+                  <table className="w-full text-left text-sm">
+                     <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold sticky top-0">
+                        <tr>
+                           <th className="px-4 py-3 rounded-l-lg">Produto</th>
+                           <th className="px-4 py-3 text-center">Estoque</th>
+                           <th className="px-4 py-3 text-right">Preço</th>
+                           <th className="px-4 py-3 text-center rounded-r-lg">Ação</th>
+                        </tr>
+                     </thead>
+                     <tbody className="divide-y divide-gray-100">
+                        {stockList.map(p => (
+                           <tr key={p.id} className="hover:bg-blue-50 group">
+                              <td className="px-4 py-3">
+                                 <p className="font-bold text-gray-800">{p.name}</p>
+                                 <p className="text-xs text-gray-400">{p.category} | SKU: {p.id}</p>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                 <span className={`px-2 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                    {p.stock} un
+                                 </span>
+                              </td>
+                              <td className="px-4 py-3 text-right font-medium text-blue-600">
+                                 R$ {p.price.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                 <button 
+                                    onClick={() => addToCart(p)}
+                                    className="bg-gray-900 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-gray-700 transition-colors opacity-0 group-hover:opacity-100"
+                                 >
+                                    Adicionar
+                                 </button>
+                              </td>
+                           </tr>
+                        ))}
+                     </tbody>
+                  </table>
+                  {stockList.length === 0 && <p className="text-center text-gray-400 py-8">Nenhum produto encontrado.</p>}
+               </div>
+            </div>
+         </div>
+      )}
+
+      {/* --- MODAL: DAILY SUMMARY --- */}
+      {isSummaryModalOpen && (
+         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+               <div className="bg-gray-800 text-white p-4 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                     <FileText size={20} />
+                     <h2 className="font-bold text-lg">Resumo de Vendas (Hoje)</h2>
+                  </div>
+                  <button onClick={() => setIsSummaryModalOpen(false)} className="hover:text-gray-300"><X size={20}/></button>
+               </div>
+
+               <div className="p-6 overflow-y-auto">
+                  {/* KPI Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                     <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                        <p className="text-xs text-green-600 font-bold uppercase mb-1">Total Vendido</p>
+                        <p className="text-2xl font-bold text-green-800">R$ {summaryData.total.toFixed(2)}</p>
+                     </div>
+                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <p className="text-xs text-blue-600 font-bold uppercase mb-1">Qtd Vendas</p>
+                        <p className="text-2xl font-bold text-blue-800">{summaryData.count}</p>
+                     </div>
+                     <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                        <p className="text-xs text-purple-600 font-bold uppercase mb-1">Ticket Médio</p>
+                        <p className="text-2xl font-bold text-purple-800">R$ {summaryData.avgTicket.toFixed(2)}</p>
+                     </div>
+                  </div>
+
+                  {/* Charts & Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div>
+                        <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2"><PieChart size={16}/> Formas de Pagamento</h3>
+                        <div className="bg-white border border-gray-100 rounded-xl p-4 h-64 shadow-sm">
+                           <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={summaryData.chartData} layout="vertical" margin={{top: 5, right: 30, left: 40, bottom: 5}}>
+                                 <XAxis type="number" hide />
+                                 <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 12}} />
+                                 <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '8px', border: 'none', background: '#333', color: '#fff'}} />
+                                 <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20}>
+                                    {summaryData.chartData.map((entry, index) => (
+                                       <Cell key={`cell-${index}`} fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444'][index % 4]} />
+                                    ))}
+                                 </Bar>
+                              </BarChart>
+                           </ResponsiveContainer>
+                        </div>
+                     </div>
+
+                     <div>
+                        <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2"><Clock size={16}/> Últimas Vendas</h3>
+                        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                           <table className="w-full text-left text-xs">
+                              <tbody className="divide-y divide-gray-100">
+                                 {summaryData.recent.length === 0 ? (
+                                    <tr><td className="p-4 text-center text-gray-400">Nenhuma venda hoje.</td></tr>
+                                 ) : (
+                                    summaryData.recent.map(t => (
+                                       <tr key={t.id} className="hover:bg-gray-50">
+                                          <td className="p-3 text-gray-500">{new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                                          <td className="p-3 font-medium text-gray-800">{t.description}</td>
+                                          <td className="p-3 text-right font-bold text-green-600">R$ {t.amount.toFixed(2)}</td>
+                                       </tr>
+                                    ))
+                                 )}
+                              </tbody>
+                           </table>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
       )}
     </div>
   );
