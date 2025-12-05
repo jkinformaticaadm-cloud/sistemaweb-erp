@@ -192,3 +192,22 @@ export interface InstallmentPlan {
     value: number;
   };
 }
+
+// --- New Financial Types ---
+
+export interface PayableAccount {
+  id: string;
+  description: string;
+  amount: number;
+  dueDate: string;
+  category: string;
+  status: 'Pendente' | 'Pago';
+  paidAt?: string;
+  supplier?: string;
+  recurrence?: 'Mensal' | 'Única';
+}
+
+export interface FinancialGoal {
+  revenueGoal: number;
+  expenseLimit: number;
+}

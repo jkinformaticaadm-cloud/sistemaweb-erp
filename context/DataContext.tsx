@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem, Supply, ServiceItem, Purchase, PaymentMachine, InstallmentPlan, Installment } from '../types';
+import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem, Supply, ServiceItem, Purchase, PaymentMachine, InstallmentPlan, Installment, PayableAccount, FinancialGoal } from '../types';
 
 interface DataContextType {
   customers: Customer[];
@@ -13,6 +13,8 @@ interface DataContextType {
   services: ServiceItem[];
   purchases: Purchase[];
   installmentPlans: InstallmentPlan[];
+  payableAccounts: PayableAccount[];
+  financialGoals: FinancialGoal;
   
   addCustomer: (c: Customer) => void;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
@@ -34,6 +36,12 @@ interface DataContextType {
   addInstallmentPlan: (plan: InstallmentPlan) => void;
   payInstallment: (planId: string, installmentNumber: number) => void;
   updateInstallmentValue: (planId: string, installmentNumber: number, newValue: number) => void;
+
+  // Financial
+  addPayableAccount: (account: PayableAccount) => void;
+  payPayableAccount: (id: string) => void;
+  deletePayableAccount: (id: string) => void;
+  updateFinancialGoals: (goals: FinancialGoal) => void;
 
   resetData: () => void;
 }
@@ -127,6 +135,33 @@ const initialInstallmentPlans: InstallmentPlan[] = [
    }
 ];
 
+// Payable Accounts Mock
+const initialPayables: PayableAccount[] = [
+  {
+    id: 'PAY-1',
+    description: 'Conta de Energia',
+    amount: 350.00,
+    dueDate: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString(),
+    status: 'Pendente',
+    category: 'Despesas Fixas',
+    recurrence: 'Mensal'
+  },
+  {
+    id: 'PAY-2',
+    description: 'Aluguel Loja',
+    amount: 1500.00,
+    dueDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
+    status: 'Pendente',
+    category: 'Despesas Fixas',
+    recurrence: 'Mensal'
+  }
+];
+
+const initialGoals: FinancialGoal = {
+  revenueGoal: 20000,
+  expenseLimit: 5000
+};
+
 // Default Machine Data
 const defaultMachine: PaymentMachine = {
   id: 'machine-1',
@@ -157,6 +192,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>(initialSalesOrders);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [installmentPlans, setInstallmentPlans] = useState<InstallmentPlan[]>(initialInstallmentPlans);
+  const [payableAccounts, setPayableAccounts] = useState<PayableAccount[]>(initialPayables);
+  const [financialGoals, setFinancialGoals] = useState<FinancialGoal>(initialGoals);
   const [settings, setSettings] = useState<SystemSettings>(initialSettings);
 
   const addCustomer = (c: Customer) => setCustomers([...customers, c]);
@@ -281,6 +318,38 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
      }));
   };
 
+  // --- Payable Accounts Methods ---
+  const addPayableAccount = (account: PayableAccount) => {
+    setPayableAccounts(prev => [...prev, account]);
+  };
+
+  const payPayableAccount = (id: string) => {
+    setPayableAccounts(prev => prev.map(acc => {
+      if (acc.id === id && acc.status !== 'Pago') {
+        // Create Transaction
+        const newTransaction: Transaction = {
+          id: `TR-PAY-${id}-${Date.now()}`,
+          description: `Pagamento: ${acc.description}`,
+          amount: acc.amount,
+          type: TransactionType.EXPENSE,
+          date: new Date().toISOString(),
+          category: acc.category
+        };
+        setTimeout(() => setTransactions(curr => [newTransaction, ...curr]), 0);
+        return { ...acc, status: 'Pago', paidAt: new Date().toISOString() };
+      }
+      return acc;
+    }));
+  };
+
+  const deletePayableAccount = (id: string) => {
+    setPayableAccounts(prev => prev.filter(acc => acc.id !== id));
+  };
+
+  const updateFinancialGoals = (goals: FinancialGoal) => {
+    setFinancialGoals(goals);
+  };
+
   const resetData = () => {
     if (confirm("Tem certeza? Todos os dados adicionados serão perdidos.")) {
       setCustomers(initialCustomers);
@@ -292,17 +361,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPurchases([]);
       setInstallmentPlans(initialInstallmentPlans);
       setSettings(initialSettings);
+      setPayableAccounts(initialPayables);
+      setFinancialGoals(initialGoals);
     }
   };
 
   return (
     <DataContext.Provider value={{
       customers, products, serviceOrders, transactions, salesOrders, settings,
-      supplies, services, purchases, installmentPlans,
+      supplies, services, purchases, installmentPlans, payableAccounts, financialGoals,
       addCustomer, updateCustomer, addProduct, addServiceOrder, updateServiceOrder, addTransaction, updateStock, 
       addSalesOrder, updateSalesOrder, updateSettings, 
       addSupply, updateSupplyStock, addService, addPurchase,
       addInstallmentPlan, payInstallment, updateInstallmentValue,
+      addPayableAccount, payPayableAccount, deletePayableAccount, updateFinancialGoals,
       resetData
     }}>
       {children}
