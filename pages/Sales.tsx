@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { Product, CartItem, Transaction, TransactionType, SalesOrder, OrderStatus, TransactionDetails } from '../types';
@@ -198,146 +199,6 @@ export const Sales: React.FC = () => {
     if (cashierTab === 'open' || cashierTab === 'close') setIsCashierModalOpen(false);
     else setCashierTab('status');
   };
-
-  // --- Render Components ---
-
-  const CashierModal = () => (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Monitor size={20} />
-            <h2 className="font-bold text-lg">Gerenciamento de Caixa</h2>
-          </div>
-          <button onClick={() => setIsCashierModalOpen(false)} className="hover:text-gray-300"><X size={20}/></button>
-        </div>
-        
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 bg-gray-50">
-          <button onClick={() => setCashierTab('status')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'status' ? 'bg-white text-blue-600 border-t-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>Resumo</button>
-          {cashierStatus === 'closed' ? (
-             <button onClick={() => setCashierTab('open')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'open' ? 'bg-white text-green-600 border-t-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}>Abertura</button>
-          ) : (
-            <>
-              <button onClick={() => setCashierTab('supply')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'supply' ? 'bg-white text-green-600 border-t-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}>Suprimento</button>
-              <button onClick={() => setCashierTab('bleed')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'bleed' ? 'bg-white text-red-600 border-t-2 border-red-600' : 'text-gray-500 hover:text-gray-700'}`}>Sangria</button>
-              <button onClick={() => setCashierTab('close')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'close' ? 'bg-white text-red-600 border-t-2 border-red-600' : 'text-gray-500 hover:text-gray-700'}`}>Fechamento</button>
-            </>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
-          {cashierTab === 'status' && (
-            <div className="space-y-6">
-               <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-100">
-                  <div>
-                    <p className="text-sm text-blue-800 mb-1 font-medium">Status do Caixa</p>
-                    <div className="flex items-center gap-2">
-                       <span className={`w-3 h-3 rounded-full ${cashierStatus === 'open' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                       <span className="font-bold text-lg text-blue-900">{cashierStatus === 'open' ? 'ABERTO' : 'FECHADO'}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-blue-800 mb-1 font-medium">Saldo Atual</p>
-                    <p className="text-2xl font-bold text-blue-900">{formatCurrency(cashierBalance)}</p>
-                  </div>
-               </div>
-
-               <div>
-                 <h3 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide">Últimas Movimentações</h3>
-                 <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-50 text-gray-500">
-                        <tr>
-                          <th className="p-3 font-medium">Hora</th>
-                          <th className="p-3 font-medium">Tipo</th>
-                          <th className="p-3 font-medium">Descrição</th>
-                          <th className="p-3 font-medium text-right">Valor</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {cashierMovements.length === 0 ? (
-                          <tr><td colSpan={4} className="p-4 text-center text-gray-400">Nenhuma movimentação</td></tr>
-                        ) : (
-                          cashierMovements.slice(0, 10).map(m => (
-                            <tr key={m.id}>
-                              <td className="p-3 text-gray-600">{m.time}</td>
-                              <td className="p-3">
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium 
-                                  ${m.type === 'sale' ? 'bg-green-100 text-green-700' : 
-                                    m.type === 'bleed' ? 'bg-red-100 text-red-700' :
-                                    m.type === 'supply' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                                  {m.type === 'sale' ? 'Venda' : m.type === 'bleed' ? 'Sangria' : m.type === 'supply' ? 'Suprimento' : m.type === 'opening' ? 'Abertura' : 'Fechamento'}
-                                </span>
-                              </td>
-                              <td className="p-3 text-gray-800">{m.description}</td>
-                              <td className={`p-3 text-right font-medium ${['bleed', 'closing'].includes(m.type) ? 'text-red-600' : 'text-green-600'}`}>
-                                {['bleed', 'closing'].includes(m.type) ? '-' : '+'} {formatCurrency(m.amount)}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                 </div>
-               </div>
-            </div>
-          )}
-
-          {['open', 'supply', 'bleed', 'close'].includes(cashierTab) && (
-             <div className="max-w-md mx-auto space-y-4 pt-4">
-                <div className="text-center mb-6">
-                   <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-3
-                     ${cashierTab === 'open' ? 'bg-green-100 text-green-600' : 
-                       cashierTab === 'supply' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
-                      <DollarSign size={32} />
-                   </div>
-                   <h3 className="text-xl font-bold text-gray-800">
-                     {cashierTab === 'open' ? 'Abertura de Caixa' : 
-                      cashierTab === 'supply' ? 'Suprimento de Caixa' : 
-                      cashierTab === 'bleed' ? 'Sangria de Caixa' : 'Fechamento de Caixa'}
-                   </h3>
-                   <p className="text-gray-500 text-sm">Informe o valor para prosseguir</p>
-                </div>
-
-                <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
-                   <input 
-                      type="number" 
-                      autoFocus
-                      className="w-full text-2xl font-bold p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      placeholder="0,00"
-                      value={cashierInputAmount}
-                      onChange={e => setCashierInputAmount(e.target.value)}
-                   />
-                </div>
-
-                <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Observação / Justificativa</label>
-                   <input 
-                      type="text" 
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                      placeholder="Opcional"
-                      value={cashierInputDesc}
-                      onChange={e => setCashierInputDesc(e.target.value)}
-                   />
-                </div>
-
-                <button 
-                  onClick={handleCashierAction}
-                  className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all mt-4
-                    ${cashierTab === 'bleed' || cashierTab === 'close' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
-                >
-                  Confirmar Operação
-                </button>
-             </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   // --- Main Render ---
 
@@ -715,7 +576,143 @@ export const Sales: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {isCashierModalOpen && <CashierModal />}
+      {isCashierModalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="bg-gray-800 text-white p-4 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Monitor size={20} />
+                <h2 className="font-bold text-lg">Gerenciamento de Caixa</h2>
+              </div>
+              <button onClick={() => setIsCashierModalOpen(false)} className="hover:text-gray-300"><X size={20}/></button>
+            </div>
+            
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 bg-gray-50">
+              <button onClick={() => setCashierTab('status')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'status' ? 'bg-white text-blue-600 border-t-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>Resumo</button>
+              {cashierStatus === 'closed' ? (
+                 <button onClick={() => setCashierTab('open')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'open' ? 'bg-white text-green-600 border-t-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}>Abertura</button>
+              ) : (
+                <>
+                  <button onClick={() => setCashierTab('supply')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'supply' ? 'bg-white text-green-600 border-t-2 border-green-600' : 'text-gray-500 hover:text-gray-700'}`}>Suprimento</button>
+                  <button onClick={() => setCashierTab('bleed')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'bleed' ? 'bg-white text-red-600 border-t-2 border-red-600' : 'text-gray-500 hover:text-gray-700'}`}>Sangria</button>
+                  <button onClick={() => setCashierTab('close')} className={`flex-1 py-3 font-medium text-sm ${cashierTab === 'close' ? 'bg-white text-red-600 border-t-2 border-red-600' : 'text-gray-500 hover:text-gray-700'}`}>Fechamento</button>
+                </>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {cashierTab === 'status' && (
+                <div className="space-y-6">
+                   <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-100">
+                      <div>
+                        <p className="text-sm text-blue-800 mb-1 font-medium">Status do Caixa</p>
+                        <div className="flex items-center gap-2">
+                           <span className={`w-3 h-3 rounded-full ${cashierStatus === 'open' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                           <span className="font-bold text-lg text-blue-900">{cashierStatus === 'open' ? 'ABERTO' : 'FECHADO'}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-blue-800 mb-1 font-medium">Saldo Atual</p>
+                        <p className="text-2xl font-bold text-blue-900">{formatCurrency(cashierBalance)}</p>
+                      </div>
+                   </div>
+
+                   <div>
+                     <h3 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide">Últimas Movimentações</h3>
+                     <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm text-left">
+                          <thead className="bg-gray-50 text-gray-500">
+                            <tr>
+                              <th className="p-3 font-medium">Hora</th>
+                              <th className="p-3 font-medium">Tipo</th>
+                              <th className="p-3 font-medium">Descrição</th>
+                              <th className="p-3 font-medium text-right">Valor</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {cashierMovements.length === 0 ? (
+                              <tr><td colSpan={4} className="p-4 text-center text-gray-400">Nenhuma movimentação</td></tr>
+                            ) : (
+                              cashierMovements.slice(0, 10).map(m => (
+                                <tr key={m.id}>
+                                  <td className="p-3 text-gray-600">{m.time}</td>
+                                  <td className="p-3">
+                                    <span className={`px-2 py-0.5 rounded text-xs font-medium 
+                                      ${m.type === 'sale' ? 'bg-green-100 text-green-700' : 
+                                        m.type === 'bleed' ? 'bg-red-100 text-red-700' :
+                                        m.type === 'supply' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                                      {m.type === 'sale' ? 'Venda' : m.type === 'bleed' ? 'Sangria' : m.type === 'supply' ? 'Suprimento' : m.type === 'opening' ? 'Abertura' : 'Fechamento'}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 text-gray-800">{m.description}</td>
+                                  <td className={`p-3 text-right font-medium ${['bleed', 'closing'].includes(m.type) ? 'text-red-600' : 'text-green-600'}`}>
+                                    {['bleed', 'closing'].includes(m.type) ? '-' : '+'} {formatCurrency(m.amount)}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                     </div>
+                   </div>
+                </div>
+              )}
+
+              {['open', 'supply', 'bleed', 'close'].includes(cashierTab) && (
+                 <div className="max-w-md mx-auto space-y-4 pt-4">
+                    <div className="text-center mb-6">
+                       <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-3
+                         ${cashierTab === 'open' ? 'bg-green-100 text-green-600' : 
+                           cashierTab === 'supply' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
+                          <DollarSign size={32} />
+                       </div>
+                       <h3 className="text-xl font-bold text-gray-800">
+                         {cashierTab === 'open' ? 'Abertura de Caixa' : 
+                          cashierTab === 'supply' ? 'Suprimento de Caixa' : 
+                          cashierTab === 'bleed' ? 'Sangria de Caixa' : 'Fechamento de Caixa'}
+                       </h3>
+                       <p className="text-gray-500 text-sm">Informe o valor para prosseguir</p>
+                    </div>
+
+                    <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
+                       <input 
+                          type="number" 
+                          autoFocus
+                          className="w-full text-2xl font-bold p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                          placeholder="0,00"
+                          value={cashierInputAmount}
+                          onChange={e => setCashierInputAmount(e.target.value)}
+                       />
+                    </div>
+
+                    <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-1">Observação / Justificativa</label>
+                       <input 
+                          type="text" 
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                          placeholder="Opcional"
+                          value={cashierInputDesc}
+                          onChange={e => setCashierInputDesc(e.target.value)}
+                       />
+                    </div>
+
+                    <button 
+                      onClick={handleCashierAction}
+                      className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all mt-4
+                        ${cashierTab === 'bleed' || cashierTab === 'close' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                    >
+                      Confirmar Operação
+                    </button>
+                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
