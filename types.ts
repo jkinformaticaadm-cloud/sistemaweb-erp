@@ -48,7 +48,7 @@ export interface Product {
   serialNumber?: string;
   color?: string;
   storage?: string;
-  condition?: 'Novo' | 'Usado';
+  condition?: 'Novo' | 'Usado' | 'Semi Novo';
 
   // Accessory Specific Fields
   compatibility?: string;

@@ -41,7 +41,7 @@ export const Products: React.FC = () => {
   const [serial, setSerial] = useState('');
   const [color, setColor] = useState('');
   const [storage, setStorage] = useState('');
-  const [condition, setCondition] = useState<'Novo' | 'Usado'>('Usado');
+  const [condition, setCondition] = useState<'Novo' | 'Usado' | 'Semi Novo'>('Usado');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,6 +205,7 @@ export const Products: React.FC = () => {
                      <label className="block text-xs font-bold text-gray-700 mb-1">Condição</label>
                      <select className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-accent bg-white" value={condition} onChange={e => setCondition(e.target.value as any)}>
                         <option>Novo</option>
+                        <option>Semi Novo</option>
                         <option>Usado</option>
                      </select>
                   </div>
@@ -324,7 +325,11 @@ export const Products: React.FC = () => {
                            <p>SN: {product.serialNumber || '-'}</p>
                         </td>
                         <td className="px-6 py-4 text-center">
-                           <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${product.condition === 'Novo' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                           <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                              product.condition === 'Novo' ? 'bg-green-100 text-green-700' : 
+                              product.condition === 'Semi Novo' ? 'bg-blue-100 text-blue-700' :
+                              'bg-orange-100 text-orange-700'
+                           }`}>
                               {product.condition}
                            </span>
                         </td>
