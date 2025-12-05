@@ -5,7 +5,7 @@ import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, Transa
 import { 
   Plus, Search, BrainCircuit, CheckCircle, Clock, FileText, X, 
   Calendar, BarChart3, Wrench, Package, ShoppingCart, Filter, QrCode, 
-  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3, Edit, DollarSign, Download, PenTool
+  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3, Edit, DollarSign, Download, PenTool, ShieldCheck
 } from 'lucide-react';
 import { analyzeTechnicalIssue } from '../services/geminiService';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
@@ -202,80 +202,166 @@ export const ServiceOrders: React.FC = () => {
   // --- Render Components ---
 
   const OSPrintModal = () => {
-    // ... (Same print component code as before, kept short for this response) ...
     if (!printingOS) return null;
     const client = customers.find(c => c.id === printingOS.customerId);
-    const productItems = printingOS.items.filter(i => i.type === 'product');
-    const serviceItems = printingOS.items.filter(i => i.type === 'service');
 
     return (
-       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:absolute print:inset-0 print:z-[9999] print:bg-white print:p-0 print:block print:h-auto print:overflow-visible">
-          <div className="bg-white w-full max-w-4xl max-h-[95vh] shadow-2xl overflow-hidden flex flex-col print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible print:max-w-none print:block print:static">
-              {/* Header Actions */}
-              <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden shrink-0">
+       <div id="os-print-modal" className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white w-full max-w-4xl min-h-[90vh] shadow-2xl overflow-hidden flex flex-col print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible">
+              
+              {/* Header Actions (Hidden on Print) */}
+              <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden sticky top-0 z-10 shrink-0">
                  <h2 className="font-bold flex items-center gap-2"><Printer size={20}/> Visualização de Impressão</h2>
                  <button onClick={() => setPrintingOS(null)} className="hover:text-gray-300"><X size={24}/></button>
               </div>
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-4 print:space-y-3 print:text-xs print:overflow-visible print:h-auto print:block">
-                 {/* Standard Header */}
-                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 print:pb-2 print:border-b">
-                    <div className="flex items-center gap-4 print:gap-2">
-                       <div className="w-16 h-16 bg-gray-800 text-white flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent print:w-12 print:h-12 print:text-xl">TF</div>
+
+              {/* Printable Content (Matches Complete Sales Style) */}
+              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs print:overflow-visible">
+                 
+                 {/* Header */}
+                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">
+                    <div className="flex items-center gap-4">
+                       <div className="w-16 h-16 bg-gray-800 text-white flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent">
+                          TF
+                       </div>
                        <div>
-                          <h1 className="text-2xl font-bold uppercase text-gray-900 print:text-black print:text-lg">{settings.companyName}</h1>
-                          <p className="text-sm text-gray-700 print:text-black print:text-[10px]">CNPJ: {settings.cnpj}</p>
-                          <p className="text-sm text-gray-700 print:text-black print:text-[10px]">{settings.address}</p>
-                          <p className="text-sm text-gray-700 print:text-black print:text-[10px]">Tel: {settings.phone}</p>
+                          <h1 className="text-2xl font-bold uppercase">{settings.companyName}</h1>
+                          <p className="text-sm">CNPJ: {settings.cnpj}</p>
+                          <p className="text-sm">{settings.address}</p>
+                          <p className="text-sm">Tel: {settings.phone}</p>
                        </div>
                     </div>
                     <div className="text-right">
-                       <h2 className="text-3xl font-bold text-gray-800 print:text-black print:text-xl">ORDEM DE SERVIÇO</h2>
-                       <p className="text-xl font-mono text-gray-600 mt-1 print:text-black print:text-sm">#{printingOS.id}</p>
-                       <p className="text-sm text-gray-500 mt-2 print:text-black print:text-[10px] print:mt-0">{new Date(printingOS.createdAt).toLocaleDateString()}</p>
+                       <h2 className="text-3xl font-bold text-gray-800">ORDEM DE SERVIÇO</h2>
+                       <p className="text-xl font-mono text-gray-600 mt-1">#{printingOS.id}</p>
+                       <p className="text-sm text-gray-500 mt-2">Data: {new Date(printingOS.createdAt).toLocaleDateString()}</p>
+                       <p className={`text-sm font-bold uppercase mt-1 px-2 py-0.5 inline-block rounded border border-gray-400 text-gray-600`}>
+                          {printingOS.status}
+                       </p>
                     </div>
                  </div>
-                 {/* Content similar to previous versions ... */}
-                 <div className="grid grid-cols-2 gap-8 print:gap-2">
-                    <div className="border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
-                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm print:text-[10px] print:mb-1">Cliente</h3>
-                       <div className="space-y-1 text-sm print:text-[10px] print:space-y-0">
-                          <p><span className="font-bold">Nome:</span> {client?.name || printingOS.customerName}</p>
-                          <p><span className="font-bold">Tel:</span> {client?.phone}</p>
-                          <p><span className="font-bold">End:</span> {client?.address}</p>
-                       </div>
+
+                 {/* Two Columns: Client & Device */}
+                 <div className="grid grid-cols-2 gap-6">
+                     {/* Client Data */}
+                     <div className="border border-gray-300 rounded-lg p-4">
+                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                           <User size={16}/> Dados do Cliente
+                        </h3>
+                        <div className="space-y-1 text-sm">
+                           <p><span className="font-bold">Nome:</span> {client?.name || printingOS.customerName}</p>
+                           <p><span className="font-bold">Telefone:</span> {client?.phone}</p>
+                           <p><span className="font-bold">Endereço:</span> {client?.address}, {client?.addressNumber}</p>
+                        </div>
+                     </div>
+
+                     {/* Device Data */}
+                     <div className="border border-gray-300 rounded-lg p-4">
+                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
+                           <Smartphone size={16}/> Dados do Aparelho
+                        </h3>
+                        <div className="space-y-1 text-sm">
+                           <p><span className="font-bold">Modelo:</span> {printingOS.device}</p>
+                           <p><span className="font-bold">IMEI:</span> {printingOS.imei || 'N/A'}</p>
+                           <p><span className="font-bold">Serial:</span> {printingOS.serialNumber || 'N/A'}</p>
+                           <p><span className="font-bold">Senha:</span> {printingOS.devicePassword || 'N/A'}</p>
+                           {printingOS.patternPassword && <p className="text-xs italic">[Senha Padrão Anexada]</p>}
+                        </div>
+                     </div>
+                 </div>
+
+                 {/* Defect Description */}
+                 <div className="border border-gray-300 rounded-lg p-4">
+                     <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg flex items-center gap-2">
+                        <AlertTriangle size={16}/> Defeito Relatado / Diagnóstico
+                     </h3>
+                     <p className="text-sm whitespace-pre-wrap min-h-[40px]">{printingOS.description}</p>
+                     {printingOS.aiDiagnosis && (
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                           <p className="text-xs font-bold text-gray-500">Análise Técnica:</p>
+                           <p className="text-xs text-gray-600 italic">{printingOS.aiDiagnosis}</p>
+                        </div>
+                     )}
+                 </div>
+
+                 {/* Items Details */}
+                 <div className="border border-gray-300 rounded-lg overflow-hidden">
+                    <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Serviços e Peças</div>
+                    <div className="p-0">
+                       <table className="w-full text-xs">
+                          <thead>
+                             <tr className="border-b border-gray-100 text-gray-400">
+                                <th className="p-2 text-left">Item / Detalhes</th>
+                                <th className="p-2 text-center">Tipo</th>
+                                <th className="p-2 text-center">Qtd</th>
+                                <th className="p-2 text-right">Unitário</th>
+                                <th className="p-2 text-right">Total</th>
+                             </tr>
+                          </thead>
+                          <tbody>
+                             {printingOS.items.length === 0 ? (
+                                <tr><td colSpan={5} className="p-4 text-center text-gray-400">Nenhum item adicionado ainda.</td></tr>
+                             ) : printingOS.items.map((item, idx) => (
+                                <tr key={idx} className="border-b border-gray-50 last:border-0">
+                                   <td className="p-2">
+                                       <span className="font-bold block">{item.name}</span>
+                                       {item.details && <span className="text-[10px] text-gray-500 block mt-0.5 whitespace-pre-wrap">{item.details}</span>}
+                                   </td>
+                                   <td className="p-2 text-center uppercase">{item.type === 'product' ? 'Peça' : 'Serviço'}</td>
+                                   <td className="p-2 text-center">{item.quantity}</td>
+                                   <td className="p-2 text-right">R$ {item.unitPrice.toFixed(2)}</td>
+                                   <td className="p-2 text-right">R$ {item.total.toFixed(2)}</td>
+                                </tr>
+                             ))}
+                          </tbody>
+                       </table>
                     </div>
-                    <div className="border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
-                       <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm print:text-[10px] print:mb-1">Aparelho</h3>
-                       <div className="space-y-1 text-sm print:text-[10px] print:space-y-0">
-                          <p><span className="font-bold">Modelo:</span> {printingOS.device}</p>
-                          <p><span className="font-bold">IMEI:</span> {printingOS.imei || '-'}</p>
-                          <p><span className="font-bold">Senha:</span> {printingOS.devicePassword || 'N/A'}</p>
-                          {printingOS.patternPassword && <p>[Senha Padrão Anexada]</p>}
-                       </div>
+                 </div>
+
+                 {/* Warranty & Financials */}
+                 <div className="flex flex-col md:flex-row gap-6">
+                     <div className="flex-1 border border-gray-300 rounded-lg p-4">
+                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg flex items-center gap-2">
+                           <ShieldCheck size={16}/> Garantia
+                        </h3>
+                        <p className="text-sm">Termo: <span className="font-bold">{printingOS.warranty}</span></p>
+                        <p className="text-[10px] text-gray-500 mt-2 text-justify leading-tight">
+                           A garantia cobre defeitos de fabricação das peças substituídas ou serviços realizados. Não cobre danos causados por mau uso, quedas, contato com líquidos ou oxidação.
+                        </p>
+                     </div>
+
+                     <div className="w-full md:w-1/3 border border-gray-300 rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Totalização</div>
+                        <div className="p-4 space-y-2">
+                           <div className="flex justify-between text-2xl font-bold pt-2 mt-2 text-gray-900 border-t border-gray-100">
+                              <span>Total</span>
+                              <span>R$ {printingOS.totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                           </div>
+                        </div>
+                     </div>
+                 </div>
+
+                 {/* Signature */}
+                 <div className="grid grid-cols-2 gap-16 mt-12 pt-8">
+                    <div className="text-center">
+                       <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
+                       <p className="text-sm font-bold uppercase">{client?.name || 'Assinatura do Cliente'}</p>
+                    </div>
+                    <div className="text-center">
+                       <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
+                       <p className="text-sm font-bold uppercase">Técnico Responsável</p>
                     </div>
                  </div>
-                 <div className="border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
-                    <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm print:text-[10px] print:mb-1">Defeito Relatado / Diagnóstico</h3>
-                    <p className="text-sm whitespace-pre-wrap print:text-[10px]">{printingOS.description}</p>
-                 </div>
-                 {/* Items */}
-                 <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black">
-                    <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-[10px]">Serviços e Peças</div>
-                    <table className="w-full text-xs print:text-[10px]">
-                        <thead><tr className="border-b"><th className="p-2 text-left">Item</th><th className="p-2 text-right">Valor</th></tr></thead>
-                        <tbody>
-                           {printingOS.items.map((i, idx) => (
-                              <tr key={idx} className="border-b last:border-0"><td className="p-2">{i.name}</td><td className="p-2 text-right">R$ {i.total.toFixed(2)}</td></tr>
-                           ))}
-                        </tbody>
-                    </table>
-                 </div>
-                 <div className="flex justify-end"><div className="text-xl font-bold print:text-sm">Total: R$ {printingOS.totalValue.toFixed(2)}</div></div>
-                 <div className="mt-8 pt-6 border-t-2 border-gray-800 print:border-black"><div className="grid grid-cols-2 gap-16 text-center"><div className="border-t border-black pt-2 text-sm font-bold">Cliente</div><div className="border-t border-black pt-2 text-sm font-bold">Técnico</div></div></div>
               </div>
-              <div className="bg-gray-100 p-4 border-t border-gray-200 flex justify-end gap-4 print:hidden shrink-0">
-                 <button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2">Imprimir</button>
+
+              {/* Footer Actions (Hidden on Print) */}
+              <div className="bg-gray-100 p-4 border-t border-gray-200 flex justify-end gap-4 print:hidden shrink-0 sticky bottom-0 z-10">
+                 <button onClick={() => window.print()} className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-sm">
+                    <Download size={18}/> Baixar PDF
+                 </button>
+                 <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-colors">
+                    <Printer size={18}/> Imprimir
+                 </button>
               </div>
           </div>
        </div>
@@ -429,7 +515,7 @@ export const ServiceOrders: React.FC = () => {
             <form onSubmit={submit} className="p-6 space-y-6 flex-1 overflow-y-auto bg-white">
                
                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {/* Row 1: Client & Basic Info */}
+                  {/* SELECT: Client */}
                   <div className="md:col-span-2">
                      <label className="label">Cliente *</label>
                      <select 
@@ -443,6 +529,8 @@ export const ServiceOrders: React.FC = () => {
                         {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                      </select>
                   </div>
+                  
+                  {/* SELECT: Priority */}
                   <div className="md:col-span-1">
                      <label className="label">Prioridade</label>
                      <select 
@@ -455,6 +543,8 @@ export const ServiceOrders: React.FC = () => {
                         <option>Alta</option>
                      </select>
                   </div>
+
+                  {/* SELECT: Status */}
                   <div className="md:col-span-1">
                      <label className="label">Status Inicial</label>
                      <select 
@@ -468,13 +558,13 @@ export const ServiceOrders: React.FC = () => {
                      </select>
                   </div>
 
-                  {/* Row 2: Device Info */}
+                  {/* TEXT: Device Info */}
                   <div className="md:col-span-2">
                      <label className="label">Aparelho / Modelo *</label>
                      <input 
                         required 
                         className="input" 
-                        placeholder="Ex: iPhone 13 Pro Max - Azul" 
+                        placeholder="Ex: iPhone 13 Pro Max" 
                         value={formData.device} 
                         onChange={e => setFormData({...formData, device: e.target.value})}
                      />
@@ -498,9 +588,9 @@ export const ServiceOrders: React.FC = () => {
                      />
                   </div>
 
-                  {/* Row 3: Security */}
+                  {/* TEXT: Security */}
                   <div className="md:col-span-1">
-                     <label className="label flex items-center gap-1"><Lock size={12}/> Senha (PIN/Texto)</label>
+                     <label className="label">Senha (PIN/Texto)</label>
                      <input 
                         className="input" 
                         placeholder="Ex: 123456" 
@@ -508,17 +598,18 @@ export const ServiceOrders: React.FC = () => {
                         onChange={e => setFormData({...formData, devicePassword: e.target.value})}
                      />
                   </div>
-                  <div className="md:col-span-3 flex items-center gap-4 border border-gray-200 rounded-lg p-3">
+                  
+                  {/* Pattern Lock Component */}
+                  <div className="md:col-span-3 flex items-center gap-4 border border-gray-300 rounded p-2">
                      <div className="flex-1">
-                        <label className="label mb-0 flex items-center gap-1"><Grid3X3 size={12}/> Senha Padrão</label>
-                        <p className="text-[10px] text-gray-400">Desenhe ao lado se necessário</p>
+                        <label className="label mb-0 flex items-center gap-1">Senha Padrão (Desenho)</label>
                      </div>
                      <div className="transform scale-75 origin-right">
                         <PatternLock size={100} value={formData.patternPassword} onChange={(val) => setFormData({...formData, patternPassword: val})} />
                      </div>
                   </div>
 
-                  {/* Row 4: Description */}
+                  {/* TEXT AREA: Description */}
                   <div className="md:col-span-4">
                      <label className="label">Descrição do Defeito *</label>
                      <textarea 
@@ -529,23 +620,23 @@ export const ServiceOrders: React.FC = () => {
                         onChange={e => setFormData({...formData, description: e.target.value})}
                      />
                      <div className="mt-2 flex justify-end">
-                        <button type="button" onClick={handleAI} disabled={isAnalyzing || !formData.device || !formData.description} className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded flex items-center gap-2 transition-colors border border-indigo-200">
+                        <button type="button" onClick={handleAI} disabled={isAnalyzing || !formData.device || !formData.description} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded flex items-center gap-2 transition-colors border border-blue-200">
                            <BrainCircuit size={14}/> {isAnalyzing ? 'Analisando...' : 'Diagnóstico IA'}
                         </button>
                      </div>
                      {(aiResult || formData.aiDiagnosis) && (
-                        <div className="mt-2 p-3 bg-indigo-50 rounded-lg text-sm text-gray-700 border border-indigo-100">
-                           <strong className="text-indigo-700 block mb-1">Sugestão IA:</strong>
+                        <div className="mt-2 p-3 bg-gray-50 rounded text-sm text-gray-700 border border-gray-200">
+                           <strong className="text-blue-700 block mb-1">Sugestão IA:</strong>
                            {aiResult || formData.aiDiagnosis}
                         </div>
                      )}
                   </div>
                   
-                  <div className="md:col-span-4 border-t border-gray-100 my-2"></div>
+                  <div className="md:col-span-4 border-t border-gray-200 my-2"></div>
 
                   {/* Row 5: Add Items (Compact) */}
-                  <div className="md:col-span-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                     <h3 className="font-bold text-gray-700 mb-3 text-sm flex items-center gap-2"><ShoppingCart size={16}/> Adicionar Itens (Peças/Serviços)</h3>
+                  <div className="md:col-span-4">
+                     <h3 className="font-bold text-gray-700 mb-3 text-sm flex items-center gap-2">Adicionar Itens (Peças/Serviços)</h3>
                      
                      <div className="flex flex-col md:flex-row gap-4 mb-4">
                         {/* Product Add */}
@@ -560,7 +651,7 @@ export const ServiceOrders: React.FC = () => {
                            </select>
                            <input type="number" className="input w-20 text-sm" placeholder="Qtd" value={productQty} onChange={e => setProductQty(Number(e.target.value))}/>
                            <input type="number" className="input w-24 text-sm" placeholder="R$" value={productPrice} onChange={e => setProductPrice(Number(e.target.value))}/>
-                           <button type="button" onClick={handleAddProduct} className="bg-white border border-gray-300 text-green-600 hover:bg-green-50 p-2 rounded-lg"><Plus size={18}/></button>
+                           <button type="button" onClick={handleAddProduct} className="bg-gray-100 border border-gray-300 text-gray-600 hover:bg-gray-200 p-2 rounded"><Plus size={18}/></button>
                         </div>
                         {/* Service Add */}
                         <div className="flex-1 flex gap-2">
@@ -576,21 +667,21 @@ export const ServiceOrders: React.FC = () => {
                            </select>
                            {selectedServiceId === 'custom' && <input className="input text-sm" placeholder="Desc." value={serviceDescription} onChange={e => setServiceDescription(e.target.value)}/>}
                            <input type="number" className="input w-24 text-sm" placeholder="R$" value={servicePrice} onChange={e => setServicePrice(Number(e.target.value))}/>
-                           <button type="button" onClick={handleAddService} className="bg-white border border-gray-300 text-blue-600 hover:bg-blue-50 p-2 rounded-lg"><Plus size={18}/></button>
+                           <button type="button" onClick={handleAddService} className="bg-gray-100 border border-gray-300 text-gray-600 hover:bg-gray-200 p-2 rounded"><Plus size={18}/></button>
                         </div>
                      </div>
 
                      {/* Items List */}
                      {addedItems.length > 0 && (
-                        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <div className="bg-white rounded border border-gray-300 overflow-hidden">
                            <table className="w-full text-sm text-left">
-                              <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
+                              <thead className="bg-gray-100 text-xs font-bold text-gray-600 uppercase">
                                  <tr><th className="p-2">Item</th><th className="p-2 text-center">Tipo</th><th className="p-2 text-right">Valor</th><th className="p-2"></th></tr>
                               </thead>
                               <tbody>
                                  {addedItems.map((item, idx) => (
-                                    <tr key={idx} className="border-t border-gray-100">
-                                       <td className="p-2">{item.name} <span className="text-xs text-gray-400">x{item.quantity}</span></td>
+                                    <tr key={idx} className="border-t border-gray-200">
+                                       <td className="p-2">{item.name} <span className="text-xs text-gray-500">x{item.quantity}</span></td>
                                        <td className="p-2 text-center text-xs text-gray-500 uppercase">{item.type === 'product' ? 'Peça' : 'Serviço'}</td>
                                        <td className="p-2 text-right font-medium">R$ {item.total.toFixed(2)}</td>
                                        <td className="p-2 text-center"><button type="button" onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td>
@@ -620,9 +711,9 @@ export const ServiceOrders: React.FC = () => {
                   </div>
                </div>
 
-               <div className="flex justify-end pt-4 border-t border-gray-100 gap-3">
-                  <button type="button" onClick={handleCloseModal} className="px-6 py-2.5 rounded-lg font-bold text-gray-600 hover:bg-gray-100 border border-gray-200">Cancelar</button>
-                  <button type="submit" className="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-bold hover:bg-blue-700 shadow-md flex items-center gap-2">
+               <div className="flex justify-end pt-4 border-t border-gray-200 gap-3">
+                  <button type="button" onClick={handleCloseModal} className="px-6 py-2.5 rounded font-bold text-gray-600 hover:bg-gray-100 border border-gray-300">Cancelar</button>
+                  <button type="submit" className="bg-blue-600 text-white px-8 py-2.5 rounded font-bold hover:bg-blue-700 shadow flex items-center gap-2">
                      <CheckCircle size={18}/> {editingOS ? 'Salvar Alterações' : 'Criar Ordem de Serviço'}
                   </button>
                </div>
@@ -631,7 +722,32 @@ export const ServiceOrders: React.FC = () => {
          
          <style>{`
             .label { @apply block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1; }
-            .input { @apply w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm text-gray-700 bg-white; }
+            .input { @apply w-full border border-gray-300 p-2 rounded outline-none focus:border-blue-500 transition-colors text-sm text-gray-800 bg-white; }
+            
+            @media print {
+               body * {
+                  visibility: hidden;
+               }
+               #os-print-modal, #os-print-modal * {
+                  visibility: visible;
+               }
+               #os-print-modal {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                  height: 100%;
+                  margin: 0;
+                  padding: 0;
+                  background: white;
+                  z-index: 9999;
+                  overflow: visible !important;
+               }
+               #os-print-modal > div {
+                  height: auto !important;
+                  overflow: visible !important;
+               }
+            }
          `}</style>
       </div>
      );
@@ -1117,7 +1233,7 @@ export const ServiceOrders: React.FC = () => {
        <OSPrintModal />
        
        <style>{`
-          .label { @apply block text-sm font-bold text-gray-700 uppercase tracking-wide mb-1; }
+          .label { @apply block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1; }
           .input { @apply w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow; }
        `}</style>
     </div>
