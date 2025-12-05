@@ -195,8 +195,8 @@ export const ServiceOrders: React.FC = () => {
     const serviceItems = printingOS.items.filter(i => i.type === 'service');
 
     return (
-       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:fixed print:inset-0 print:z-[9999] print:bg-white print:p-0 print:block">
-          <div className="bg-white w-full max-w-4xl max-h-[95vh] shadow-2xl overflow-hidden flex flex-col print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible print:absolute print:top-0 print:left-0">
+       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:absolute print:inset-0 print:z-[9999] print:bg-white print:p-0 print:block print:h-auto print:overflow-visible">
+          <div className="bg-white w-full max-w-4xl max-h-[95vh] shadow-2xl overflow-hidden flex flex-col print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible print:max-w-none print:block print:static">
               
               {/* Header Actions (Hidden on Print) */}
               <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden shrink-0">
@@ -231,7 +231,7 @@ export const ServiceOrders: React.FC = () => {
                  </div>
 
                  {/* 2. Client & Device Grid */}
-                 <div className="grid grid-cols-2 gap-8">
+                 <div className="grid grid-cols-2 gap-8 print:gap-4">
                     {/* Client Data */}
                     <div className="border border-gray-300 rounded-lg p-4 print:border-black">
                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black">
@@ -281,10 +281,10 @@ export const ServiceOrders: React.FC = () => {
                     )}
                  </div>
 
-                 {/* 4. Products & Services Details */}
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 {/* 4. Products & Services Details - Side by Side */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8 print:gap-4">
                      {/* Products */}
-                     <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black">
+                     <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black h-fit">
                         <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Peças / Produtos</div>
                         <div className="p-0">
                            {productItems.length > 0 ? (
@@ -311,7 +311,7 @@ export const ServiceOrders: React.FC = () => {
                      </div>
 
                      {/* Services */}
-                     <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black">
+                     <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black h-fit">
                         <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black">Serviços Executados</div>
                         <div className="p-0">
                            {serviceItems.length > 0 ? (
