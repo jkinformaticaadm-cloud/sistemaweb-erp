@@ -351,7 +351,7 @@ export const Products: React.FC = () => {
                   </div>
                   <div>
                      <label className="block text-xs font-bold text-gray-700 mb-1">Valor Custo (R$)</label>
-                     <input required type="number" step="0.01" className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-accent" value={cost} onChange={e => setCost(e.target.value)} />
+                     <input type="number" step="0.01" className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-accent" value={cost} onChange={e => setCost(e.target.value)} />
                   </div>
                   <div>
                      <label className="block text-xs font-bold text-gray-700 mb-1">Estoque Atual</label>
@@ -413,7 +413,7 @@ export const Products: React.FC = () => {
                   </div>
                   <div>
                      <label className="block text-xs font-bold text-gray-700 mb-1">Custo (R$)</label>
-                     <input required type="number" step="0.01" className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-accent" value={cost} onChange={e => setCost(e.target.value)} />
+                     <input type="number" step="0.01" className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-accent" value={cost} onChange={e => setCost(e.target.value)} />
                   </div>
                </div>
             )}
