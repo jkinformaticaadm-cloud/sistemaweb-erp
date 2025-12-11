@@ -2,18 +2,22 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, ShoppingCart, Wrench, Users, Package, PieChart, Settings, LogOut, BookOpen, FileBadge } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const Sidebar: React.FC = () => {
+  const { user, logout } = useAuth();
+
   const links = [
-    { to: "/", icon: <LayoutDashboard size={20} />, label: "Dashboard" },
-    { to: "/vendas", icon: <ShoppingCart size={20} />, label: "PDV Rápido" },
-    { to: "/vendas-completas", icon: <FileBadge size={20} />, label: "Venda Completa" },
-    { to: "/os", icon: <Wrench size={20} />, label: "Ordens de Serviço" },
-    { to: "/clientes", icon: <Users size={20} />, label: "Clientes" },
-    { to: "/produtos", icon: <Package size={20} />, label: "Produtos" },
-    { to: "/crediario", icon: <BookOpen size={20} />, label: "Crediário" },
-    { to: "/financeiro", icon: <PieChart size={20} />, label: "Financeiro" },
-    { to: "/configuracoes", icon: <Settings size={20} />, label: "Configurações" },
+    { to: "/", icon: <LayoutDashboard size={20} />, label: "Dashboard", roles: ['ADMIN', 'USER'] },
+    { to: "/vendas", icon: <ShoppingCart size={20} />, label: "PDV Rápido", roles: ['ADMIN', 'USER'] },
+    { to: "/vendas-completas", icon: <FileBadge size={20} />, label: "Venda Completa", roles: ['ADMIN', 'USER'] },
+    { to: "/os", icon: <Wrench size={20} />, label: "Ordens de Serviço", roles: ['ADMIN', 'USER'] },
+    { to: "/clientes", icon: <Users size={20} />, label: "Clientes", roles: ['ADMIN', 'USER'] },
+    { to: "/produtos", icon: <Package size={20} />, label: "Produtos", roles: ['ADMIN', 'USER'] },
+    { to: "/crediario", icon: <BookOpen size={20} />, label: "Crediário", roles: ['ADMIN', 'USER'] },
+    { to: "/financeiro", icon: <PieChart size={20} />, label: "Financeiro", roles: ['ADMIN', 'USER'] },
+    // Settings only for ADMIN
+    { to: "/configuracoes", icon: <Settings size={20} />, label: "Configurações", roles: ['ADMIN'] },
   ];
 
   return (
@@ -22,11 +26,11 @@ export const Sidebar: React.FC = () => {
         <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white font-bold">
           TF
         </div>
-        <h1 className="text-xl font-bold text-white">TechFix Pro</h1>
+        <h1 className="text-xl font-bold text-white">RTJK INFOCELL</h1>
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {links.map(link => (
+        {links.filter(link => user && link.roles.includes(user.role)).map(link => (
           <NavLink
             key={link.to}
             to={link.to}
@@ -45,7 +49,18 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       <div className="p-4 border-t border-gray-700">
-        <button className="flex items-center gap-3 px-4 py-3 w-full rounded-lg hover:bg-red-900/30 text-red-400 hover:text-red-300 transition-colors">
+        <div className="mb-4 px-4">
+           <p className="text-xs text-gray-500 uppercase font-bold">Logado como</p>
+           <p className="text-sm font-bold text-white truncate">{user?.name || 'Usuário'}</p>
+           <p className={`text-[10px] font-bold inline-block px-2 py-0.5 rounded mt-1 
+              ${user?.role === 'ADMIN' ? 'bg-red-900/50 text-red-200' : 'bg-blue-900/50 text-blue-200'}`}>
+              {user?.role === 'ADMIN' ? 'Administrador' : 'Usuário Padrão'}
+           </p>
+        </div>
+        <button 
+          onClick={logout}
+          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg hover:bg-red-900/30 text-red-400 hover:text-red-300 transition-colors"
+        >
           <LogOut size={20} />
           <span>Sair</span>
         </button>

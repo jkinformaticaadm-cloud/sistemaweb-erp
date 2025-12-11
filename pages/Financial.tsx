@@ -265,7 +265,7 @@ export const Financial: React.FC = () => {
                                <div key={p.id} className="flex justify-between items-center text-sm border-b border-gray-100 pb-2 last:border-0">
                                   <span className="text-gray-600">{p.name}</span>
                                   <span className="font-bold text-red-600 bg-red-50 px-2 rounded">{p.stock} un</span>
-                               </div>
+                                </div>
                             ))}
                          </div>
                       ) : (
@@ -605,7 +605,7 @@ export const Financial: React.FC = () => {
             {/* Print Footer */}
             <div className="hidden print:block p-8 mt-4 border-t border-gray-200">
                <div className="flex justify-between text-xs text-gray-500">
-                  <p>TechFix Pro - Relatório Financeiro Unificado</p>
+                  <p>RTJK INFOCELL - Relatório Financeiro Unificado</p>
                   <p>Emitido em: {new Date().toLocaleString()}</p>
                </div>
             </div>

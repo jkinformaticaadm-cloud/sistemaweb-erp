@@ -1,19 +1,36 @@
 
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Save, Building, Bell, ShieldAlert, Database, Check, CreditCard, Plus, Trash2, Calculator } from 'lucide-react';
-import { PaymentMachine, InstallmentRate } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { Save, Building, Bell, ShieldAlert, Database, Check, CreditCard, Plus, Trash2, Calculator, Users, UserPlus, Key, Lock, User } from 'lucide-react';
+import { PaymentMachine, User as UserType, UserRole } from '../types';
+import { useNavigate } from 'react-router-dom';
 
-type SettingsTab = 'general' | 'fees';
+type SettingsTab = 'general' | 'fees' | 'users';
 
 export const Settings: React.FC = () => {
   const { settings, updateSettings, resetData } = useData();
+  const { user, users, addUser, updateUser, deleteUser } = useAuth();
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [formData, setFormData] = useState(settings);
   const [isSaved, setIsSaved] = useState(false);
 
   // Machine Editing State
   const [editingMachine, setEditingMachine] = useState<PaymentMachine | null>(null);
+
+  // User Management State
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserType | null>(null);
+  const [userForm, setUserForm] = useState({ name: '', username: '', password: '', role: 'USER' as UserRole });
+
+  // Security Check
+  useEffect(() => {
+     if (user?.role !== 'ADMIN') {
+        navigate('/'); // Redirect non-admins
+     }
+  }, [user, navigate]);
 
   useEffect(() => {
     setFormData(settings);
@@ -74,6 +91,42 @@ export const Settings: React.FC = () => {
     handleUpdateMachine(updatedMachine);
   };
 
+  // --- User Management Logic ---
+  
+  const handleOpenUserModal = (u?: UserType) => {
+     if (u) {
+        setEditingUser(u);
+        setUserForm({ name: u.name, username: u.username, password: u.password || '', role: u.role });
+     } else {
+        setEditingUser(null);
+        setUserForm({ name: '', username: '', password: '', role: 'USER' });
+     }
+     setIsUserModalOpen(true);
+  };
+
+  const handleUserSubmit = (e: React.FormEvent) => {
+     e.preventDefault();
+     if (editingUser) {
+        updateUser(editingUser.id, userForm);
+     } else {
+        if (!userForm.name || !userForm.username || !userForm.password) return alert('Preencha todos os campos');
+        addUser({
+           id: `user-${Date.now()}`,
+           ...userForm
+        });
+     }
+     setIsUserModalOpen(false);
+  };
+
+  const handleDeleteUser = (id: string) => {
+     if(confirm("Tem certeza que deseja excluir este usuário?")) {
+        deleteUser(id);
+     }
+  };
+
+  // Prevent render if not admin (though useEffect handles redirect)
+  if (user?.role !== 'ADMIN') return null;
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center">
@@ -101,6 +154,13 @@ export const Settings: React.FC = () => {
             className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'fees' ? 'bg-gray-800 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
          >
             Taxas e Máquinas
+         </button>
+         <button 
+            type="button"
+            onClick={() => setActiveTab('users')}
+            className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'users' ? 'bg-gray-800 text-white shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}
+         >
+            <Users size={16}/> Usuários
          </button>
       </div>
 
@@ -340,30 +400,148 @@ export const Settings: React.FC = () => {
             </div>
          )}
 
-         {/* Footer Actions */}
-         <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-             
-             {/* Danger Zone only visible in General Tab */}
-             {activeTab === 'general' ? (
-               <div className="flex items-center gap-4">
+         {/* --- USERS SETTINGS CONTENT --- */}
+         {activeTab === 'users' && (
+            <div className="space-y-6 animate-fade-in">
+               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center">
+                  <div>
+                     <h3 className="text-lg font-bold text-gray-800">Controle de Usuários</h3>
+                     <p className="text-sm text-gray-500">Adicione e gerencie quem tem acesso ao sistema.</p>
+                  </div>
                   <button 
-                     type="button"
-                     onClick={resetData}
-                     className="flex items-center gap-2 text-red-500 text-sm hover:underline"
+                     type="button" 
+                     onClick={() => handleOpenUserModal()}
+                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2"
                   >
-                     <Database size={16} /> Resetar Fábrica
+                     <UserPlus size={18}/> Novo Usuário
                   </button>
                </div>
-             ) : <div></div>}
 
-            <button 
-               type="submit" 
-               className="flex items-center gap-2 bg-accent hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg"
-            >
-               <Save size={20} /> Salvar Alterações
-            </button>
-         </div>
+               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <table className="w-full text-left text-sm">
+                     <thead className="bg-gray-50 text-gray-500 uppercase font-bold text-xs border-b border-gray-100">
+                        <tr>
+                           <th className="px-6 py-4">Nome</th>
+                           <th className="px-6 py-4">Usuário</th>
+                           <th className="px-6 py-4">Função</th>
+                           <th className="px-6 py-4 text-center">Ações</th>
+                        </tr>
+                     </thead>
+                     <tbody className="divide-y divide-gray-100">
+                        {users.map(u => (
+                           <tr key={u.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 font-bold text-gray-800">{u.name}</td>
+                              <td className="px-6 py-4 text-gray-600">{u.username}</td>
+                              <td className="px-6 py-4">
+                                 <span className={`px-2 py-1 rounded text-xs font-bold ${u.role === 'ADMIN' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {u.role}
+                                 </span>
+                              </td>
+                              <td className="px-6 py-4 flex justify-center gap-2">
+                                 <button 
+                                    type="button" 
+                                    onClick={() => handleOpenUserModal(u)}
+                                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                 >
+                                    <Key size={18}/>
+                                 </button>
+                                 <button 
+                                    type="button" 
+                                    onClick={() => handleDeleteUser(u.id)}
+                                    disabled={u.username === 'admin'}
+                                    className={`p-2 rounded-lg ${u.username === 'admin' ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-red-600 hover:bg-red-50'}`}
+                                 >
+                                    <Trash2 size={18}/>
+                                 </button>
+                              </td>
+                           </tr>
+                        ))}
+                     </tbody>
+                  </table>
+               </div>
+            </div>
+         )}
+
+         {/* --- GENERAL FOOTER (General & Fees) --- */}
+         {(activeTab === 'general' || activeTab === 'fees') && (
+            <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+               {activeTab === 'general' ? (
+                  <div className="flex items-center gap-4">
+                     <button 
+                        type="button"
+                        onClick={resetData}
+                        className="flex items-center gap-2 text-red-500 text-sm hover:underline"
+                     >
+                        <Database size={16} /> Resetar Fábrica
+                     </button>
+                  </div>
+               ) : <div></div>}
+
+               <button 
+                  type="submit" 
+                  className="flex items-center gap-2 bg-accent hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg"
+               >
+                  <Save size={20} /> Salvar Alterações
+               </button>
+            </div>
+         )}
       </form>
+
+      {/* --- USER MODAL --- */}
+      {isUserModalOpen && (
+         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl animate-fade-in">
+               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <User size={24}/> {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
+               </h2>
+               <form onSubmit={handleUserSubmit} className="space-y-4">
+                  <div>
+                     <label className="block text-sm font-bold text-gray-700 mb-1">Nome Completo</label>
+                     <input 
+                        className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" 
+                        value={userForm.name} 
+                        onChange={e => setUserForm({...userForm, name: e.target.value})}
+                        required
+                     />
+                  </div>
+                  <div>
+                     <label className="block text-sm font-bold text-gray-700 mb-1">Nome de Usuário (Login)</label>
+                     <input 
+                        className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" 
+                        value={userForm.username} 
+                        onChange={e => setUserForm({...userForm, username: e.target.value})}
+                        required
+                     />
+                  </div>
+                  <div>
+                     <label className="block text-sm font-bold text-gray-700 mb-1">Senha</label>
+                     <input 
+                        className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" 
+                        placeholder={editingUser ? "Deixe em branco para manter" : "******"}
+                        value={userForm.password} 
+                        onChange={e => setUserForm({...userForm, password: e.target.value})}
+                        required={!editingUser}
+                     />
+                  </div>
+                  <div>
+                     <label className="block text-sm font-bold text-gray-700 mb-1">Nível de Acesso</label>
+                     <select 
+                        className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        value={userForm.role}
+                        onChange={e => setUserForm({...userForm, role: e.target.value as UserRole})}
+                     >
+                        <option value="USER">Usuário Padrão</option>
+                        <option value="ADMIN">Administrador</option>
+                     </select>
+                  </div>
+                  <div className="flex justify-end gap-3 pt-4">
+                     <button type="button" onClick={() => setIsUserModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+                     <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold">Salvar</button>
+                  </div>
+               </form>
+            </div>
+         </div>
+      )}
 
     </div>
   );

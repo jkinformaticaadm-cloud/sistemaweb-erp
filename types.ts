@@ -23,6 +23,17 @@ export enum OrderStatus {
   FINISHED = 'Finalizado'
 }
 
+// --- Auth Types ---
+export type UserRole = 'ADMIN' | 'USER';
+
+export interface User {
+  id: string;
+  username: string; // Login identifier (no email required)
+  password?: string; // In a real app, this should be hashed. Here it's a mock.
+  name: string;
+  role: UserRole;
+}
+
 export interface Customer {
   id: string;
   name: string;

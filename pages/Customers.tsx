@@ -143,7 +143,7 @@ export const Customers: React.FC = () => {
                 </div>
 
                 <div className="mt-8 pt-8 border-t border-dashed border-gray-300 text-center print:block hidden">
-                   <p className="text-sm text-gray-500">TechFix Pro - Sistema de Gestão</p>
+                   <p className="text-sm text-gray-500">RTJK INFOCELL - Sistema de Gestão</p>
                    <p className="text-xs text-gray-400">Gerado em {new Date().toLocaleDateString()}</p>
                 </div>
              </div>

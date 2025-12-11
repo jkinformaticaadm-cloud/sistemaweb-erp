@@ -210,9 +210,9 @@ const defaultMachine: PaymentMachine = {
 };
 
 const initialSettings: SystemSettings = {
-  companyName: 'TechFix Pro',
+  companyName: 'RTJK INFOCELL',
   cnpj: '00.000.000/0001-00',
-  email: 'contato@techfix.com',
+  email: 'contato@rtjkinfocell.com',
   phone: '(11) 9999-9999',
   address: 'Rua das Tecnologias, 100, São Paulo - SP',
   enableNotifications: true,
