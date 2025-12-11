@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Customer, Product, ServiceOrder, Transaction, OSStatus, TransactionType, SystemSettings, SalesOrder, OrderStatus, CartItem, Supply, ServiceItem, Purchase, PaymentMachine, InstallmentPlan, Installment, PayableAccount, FinancialGoal } from '../types';
+import { supabase, toCamel, toSnake } from '../services/supabase';
 
 interface DataContextType {
   customers: Customer[];
@@ -15,6 +16,8 @@ interface DataContextType {
   installmentPlans: InstallmentPlan[];
   payableAccounts: PayableAccount[];
   financialGoals: FinancialGoal;
+  
+  isLoading: boolean;
   
   addCustomer: (c: Customer) => void;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
@@ -53,162 +56,29 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Initial Mock Data
+// --- MOCK DATA (Fallback) ---
 const initialCustomers: Customer[] = [
   { id: '1', name: 'João Silva', phone: '(11) 99999-9999', email: 'joao@email.com', address: 'Rua das Flores, Bairro Jardim', addressNumber: '123', cep: '01001-000', cpfOrCnpj: '123.456.789-00', creditBalance: 50.00 },
-  { id: '2', name: 'Maria Souza', phone: '(11) 88888-8888', email: 'maria@email.com', address: 'Av Paulista, Centro', addressNumber: '1000', cep: '01310-100', cpfOrCnpj: '987.654.321-99', creditBalance: 0 },
 ];
-
 const initialProducts: Product[] = [
-  { 
-    id: '1', 
-    name: 'Tela iPhone 13 Original', 
-    price: 1200, 
-    cost: 600, 
-    stock: 5, 
-    category: 'Peças',
-    compatibility: 'iPhone 13',
-    minStock: 2,
-    maxStock: 10
-  },
-  { 
-    id: '2', 
-    name: 'iPhone 11 64GB', 
-    price: 2500, 
-    cost: 1800, 
-    stock: 2, 
-    category: 'Aparelhos',
-    brand: 'Apple',
-    model: 'iPhone 11',
-    storage: '64GB',
-    color: 'Preto',
-    condition: 'Usado',
-    imei: '35489000000001'
-  },
-  {
-    id: '3',
-    name: 'Capa TPU Transparente',
-    price: 30,
-    cost: 5,
-    stock: 50,
-    category: 'Capas TPU',
-    compatibility: 'Samsung S20',
-    minStock: 10,
-    maxStock: 100
-  }
+  { id: '1', name: 'Tela iPhone 13 Original', price: 1200, cost: 600, stock: 5, category: 'Peças', compatibility: 'iPhone 13', minStock: 2, maxStock: 10 },
 ];
-
-const initialSupplies: Supply[] = [
-  { id: '1', name: 'Cola B-7000', unit: 'un', cost: 15.00, stock: 20, minStock: 5 },
-  { id: '2', name: 'Álcool Isopropílico', unit: 'litro', cost: 45.00, stock: 2, minStock: 1 },
-];
-
+const initialSupplies: Supply[] = [];
 const initialServices: ServiceItem[] = [
-  { id: '1', name: 'Troca de Tela', price: 150.00, description: 'Mão de obra para troca de frontal' },
-  { id: '2', name: 'Banho Químico', price: 120.00, description: 'Desoxidação de placa lógica' },
+    { id: '1', name: 'Troca de Tela', price: 150.00, description: 'Mão de obra para troca de frontal' }
 ];
-
-const initialOS: ServiceOrder[] = [
-  { 
-    id: 'OS-1001', 
-    customerId: '1', 
-    customerName: 'João Silva', 
-    device: 'iPhone 13', 
-    imei: '354810000000001',
-    serialNumber: 'F17D9A001',
-    description: 'Tela quebrada após queda.', 
-    status: OSStatus.EM_ANDAMENTO, 
-    priority: 'Alta', 
-    createdAt: new Date().toISOString(), 
-    totalValue: 1350,
-    warranty: '90 Dias (Peça e Mão de obra)',
-    technicalNotes: 'Aguardando secagem da cola.',
-    items: [
-      { id: '1', name: 'Troca de Tela', quantity: 1, unitPrice: 150, total: 150, type: 'service' },
-      { id: 'p1', name: 'Tela iPhone 13 Original', quantity: 1, unitPrice: 1200, total: 1200, type: 'product' }
-    ]
-  },
-  { 
-    id: 'OS-1002', 
-    customerId: '2', 
-    customerName: 'Maria Souza', 
-    device: 'Notebook Dell', 
-    imei: '',
-    serialNumber: 'TAG-DX0001',
-    description: 'Não liga, luz de power pisca laranja.', 
-    status: OSStatus.PENDENTE, 
-    priority: 'Média', 
-    createdAt: new Date(Date.now() - 86400000).toISOString(), 
-    totalValue: 0,
-    warranty: '30 Dias (Diagnóstico)',
-    items: []
-  }
-];
-
-const initialTransactions: Transaction[] = [
-  { id: '1', description: 'Venda Balcão #101', amount: 150, type: TransactionType.INCOME, date: new Date().toISOString(), category: 'Vendas' },
-];
-
+const initialOS: ServiceOrder[] = [];
+const initialTransactions: Transaction[] = [];
 const initialSalesOrders: SalesOrder[] = [];
-
-// Crediário Mock
-const initialInstallmentPlans: InstallmentPlan[] = [
-   {
-      id: 'CRED-1001',
-      customerId: '1',
-      customerName: 'João Silva',
-      customerAddress: 'Rua das Flores, Bairro Jardim, 123',
-      productName: 'iPhone 13',
-      brand: 'Apple',
-      model: '128GB Midnight',
-      serialNumber: 'SN123456',
-      totalValue: 4000,
-      frequency: 'Mensal',
-      createdAt: new Date().toISOString(),
-      installments: [
-         { number: 1, value: 1000, dueDate: new Date().toISOString(), status: 'Pago', paidAt: new Date().toISOString() },
-         { number: 2, value: 1000, dueDate: new Date(Date.now() + 2592000000).toISOString(), status: 'Pendente' },
-         { number: 3, value: 1000, dueDate: new Date(Date.now() + 5184000000).toISOString(), status: 'Pendente' },
-         { number: 4, value: 1000, dueDate: new Date(Date.now() + 7776000000).toISOString(), status: 'Pendente' },
-      ]
-   }
-];
-
-// Payable Accounts Mock
-const initialPayables: PayableAccount[] = [
-  {
-    id: 'PAY-1',
-    description: 'Conta de Energia',
-    amount: 350.00,
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString(),
-    status: 'Pendente',
-    category: 'Despesas Fixas',
-    recurrence: 'Mensal'
-  },
-  {
-    id: 'PAY-2',
-    description: 'Aluguel Loja',
-    amount: 1500.00,
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
-    status: 'Pendente',
-    category: 'Despesas Fixas',
-    recurrence: 'Mensal'
-  }
-];
-
-const initialGoals: FinancialGoal = {
-  revenueGoal: 20000,
-  expenseLimit: 5000
-};
-
-// Default Machine Data
+const initialInstallmentPlans: InstallmentPlan[] = [];
+const initialPayables: PayableAccount[] = [];
+const initialGoals: FinancialGoal = { revenueGoal: 20000, expenseLimit: 5000 };
 const defaultMachine: PaymentMachine = {
   id: 'machine-1',
-  name: 'Máquina Padrão (Ex: Stone/Cielo)',
+  name: 'Máquina Padrão',
   debitRate: 1.99,
   creditRates: Array.from({ length: 18 }, (_, i) => ({ installments: i + 1, rate: 3.0 + (i * 1.5) }))
 };
-
 const initialSettings: SystemSettings = {
   companyName: 'RTJK INFOCELL',
   cnpj: '00.000.000/0001-00',
@@ -222,6 +92,8 @@ const initialSettings: SystemSettings = {
 };
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [supplies, setSupplies] = useState<Supply[]>(initialSupplies);
@@ -235,38 +107,145 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [financialGoals, setFinancialGoals] = useState<FinancialGoal>(initialGoals);
   const [settings, setSettings] = useState<SystemSettings>(initialSettings);
 
-  const addCustomer = (c: Customer) => setCustomers([...customers, c]);
+  // --- Supabase Data Loading ---
+  useEffect(() => {
+    const loadData = async () => {
+      if (!supabase) {
+         console.warn("Supabase not configured. Using mock data.");
+         setIsLoading(false);
+         return;
+      }
+
+      try {
+        setIsLoading(true);
+
+        const [
+            { data: cust }, { data: prod }, { data: supp }, { data: serv },
+            { data: os }, { data: so }, { data: tx }, { data: pay },
+            { data: plans }, { data: goals }, { data: sett }, { data: purch }
+        ] = await Promise.all([
+            supabase.from('customers').select('*'),
+            supabase.from('products').select('*'),
+            supabase.from('supplies').select('*'),
+            supabase.from('services').select('*'),
+            supabase.from('service_orders').select('*, service_order_items(*)'),
+            supabase.from('sales_orders').select('*, sales_order_items(*)'),
+            supabase.from('transactions').select('*'),
+            supabase.from('payable_accounts').select('*'),
+            supabase.from('installment_plans').select('*, installments(*)'),
+            supabase.from('financial_goals').select('*').single(),
+            supabase.from('system_settings').select('*').single(),
+            supabase.from('purchases').select('*')
+        ]);
+
+        if (cust) setCustomers(toCamel(cust));
+        if (prod) setProducts(toCamel(prod));
+        if (supp) setSupplies(toCamel(supp));
+        if (serv) setServices(toCamel(serv));
+        if (tx) setTransactions(toCamel(tx));
+        if (pay) setPayableAccounts(toCamel(pay));
+        if (goals) setFinancialGoals(toCamel(goals));
+        if (sett) setSettings(toCamel(sett));
+        if (purch) setPurchases(toCamel(purch));
+
+        if (os) {
+            const formattedOS = os.map((order: any) => ({
+                ...toCamel(order),
+                items: order.service_order_items ? toCamel(order.service_order_items) : []
+            }));
+            setServiceOrders(formattedOS);
+        }
+
+        if (so) {
+            const formattedSO = so.map((order: any) => ({
+                ...toCamel(order),
+                items: order.sales_order_items ? toCamel(order.sales_order_items) : []
+            }));
+            setSalesOrders(formattedSO);
+        }
+
+        if (plans) {
+             const formattedPlans = plans.map((plan: any) => ({
+                 ...toCamel(plan),
+                 installments: plan.installments ? toCamel(plan.installments) : []
+             }));
+             setInstallmentPlans(formattedPlans);
+        }
+
+      } catch (error) {
+         console.error("Error loading data from Supabase:", error);
+      } finally {
+         setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // --- Actions Wrappers ---
+  // Helper to sync with local state and Supabase
+  const sync = async (table: string, data: any, id?: string) => {
+      if (!supabase) return;
+      const snakeData = toSnake(data);
+      if (id) {
+          await supabase.from(table).update(snakeData).eq('id', id);
+      } else {
+          await supabase.from(table).insert(snakeData);
+      }
+  };
+  
+  const addCustomer = (c: Customer) => {
+      setCustomers([...customers, c]);
+      sync('customers', c);
+  };
   
   const updateCustomer = (id: string, updates: Partial<Customer>) => {
     setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    sync('customers', updates, id);
   };
 
   const updateCustomerCredit = (customerId: string, amount: number, operation: 'add' | 'set') => {
-     setCustomers(prev => prev.map(c => {
-        if (c.id === customerId) {
-           const newBalance = operation === 'add' ? (c.creditBalance || 0) + amount : amount;
-           return { ...c, creditBalance: Math.max(0, newBalance) };
-        }
-        return c;
-     }));
+     setCustomers(prev => {
+        const newCustomers = prev.map(c => {
+            if (c.id === customerId) {
+                const newBalance = operation === 'add' ? (c.creditBalance || 0) + amount : amount;
+                return { ...c, creditBalance: Math.max(0, newBalance) };
+            }
+            return c;
+        });
+        const updatedCustomer = newCustomers.find(c => c.id === customerId);
+        if (updatedCustomer) sync('customers', { creditBalance: updatedCustomer.creditBalance }, customerId);
+        return newCustomers;
+     });
   };
 
-  const addProduct = (p: Product) => setProducts([...products, p]);
+  const addProduct = (p: Product) => {
+      setProducts([...products, p]);
+      sync('products', p);
+  };
   
   const updateProduct = (id: string, updates: Partial<Product>) => {
     setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    sync('products', updates, id);
   };
 
-  const addServiceOrder = (os: ServiceOrder) => {
+  const addServiceOrder = async (os: ServiceOrder) => {
     setServiceOrders([os, ...serviceOrders]);
+    if (supabase) {
+        // Separate items from order
+        const { items, ...orderData } = os;
+        await sync('service_orders', orderData);
+        if (items && items.length > 0) {
+            const itemsWithId = items.map(i => ({ ...i, serviceOrderId: os.id }));
+            await supabase.from('service_order_items').insert(toSnake(itemsWithId));
+        }
+    }
   };
 
-  const addTransaction = (t: Transaction) => setTransactions(prev => [t, ...prev]);
-
-  const updateServiceOrder = (id: string, updates: Partial<ServiceOrder>) => {
+  const updateServiceOrder = async (id: string, updates: Partial<ServiceOrder>) => {
+    // Optimistic Update
     setServiceOrders(prev => prev.map(os => {
       if (os.id === id) {
-        // If status changing to FINALIZADO, create income transaction
         if (updates.status === OSStatus.FINALIZADO && os.status !== OSStatus.FINALIZADO) {
            const finalTotal = updates.totalValue !== undefined ? updates.totalValue : os.totalValue;
            if (finalTotal > 0) {
@@ -279,78 +258,128 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                category: 'Serviços de Assistência',
                transactionDetails: {
                   customerName: os.customerName,
-                  paymentMethod: updates.paymentMethod || 'Dinheiro', // Capture payment method here
-                  items: [] // Could populate with OS items if structure matched CartItem perfectly
+                  paymentMethod: updates.paymentMethod || 'Dinheiro',
+                  items: []
                }
              };
-             setTimeout(() => {
-                setTransactions(curr => [newTransaction, ...curr]);
-             }, 0);
+             addTransaction(newTransaction); // Will trigger sync
            }
         }
         return { ...os, ...updates };
       }
       return os;
     }));
+
+    if (supabase) {
+        // Handle items update if present is complicated, usually requires delete & re-insert for simple apps
+        // For now, we update main fields
+        const { items, ...fieldsToUpdate } = updates;
+        await sync('service_orders', fieldsToUpdate, id);
+        
+        // If items changed, replace them (simplest strategy)
+        if (items) {
+             await supabase.from('service_order_items').delete().eq('service_order_id', id);
+             const itemsWithId = items.map(i => ({ ...i, serviceOrderId: id }));
+             await supabase.from('service_order_items').insert(toSnake(itemsWithId));
+        }
+    }
+  };
+
+  const addTransaction = (t: Transaction) => {
+      setTransactions(prev => [t, ...prev]);
+      sync('transactions', t);
   };
 
   const processRefund = (originalTransaction: Transaction, refundType: 'money' | 'credit', customerId?: string) => {
-     // 1. Create Refund Transaction (Expense to neutralize the Income)
      const refundTransaction: Transaction = {
         id: `REF-${originalTransaction.id}-${Date.now()}`,
         description: `Estorno (${refundType === 'money' ? 'Devolução' : 'Crédito'}) - Ref: ${originalTransaction.description}`,
         amount: originalTransaction.amount,
-        type: TransactionType.EXPENSE, // Money out or liability created
+        type: TransactionType.EXPENSE,
         date: new Date().toISOString(),
         category: 'Estornos',
-        transactionDetails: {
-           ...originalTransaction.transactionDetails,
-           refunded: true
-        }
+        transactionDetails: { ...originalTransaction.transactionDetails, refunded: true }
      };
      addTransaction(refundTransaction);
 
-     // 2. Mark original transaction as refunded (Optional in simple model, but good for UI)
      setTransactions(prev => prev.map(t => 
         t.id === originalTransaction.id 
         ? { ...t, transactionDetails: { ...t.transactionDetails, refunded: true } }
         : t
      ));
+     if (supabase) {
+         // Update original transaction
+         // Need to fetch current details, update refunded flag, save back. 
+         // Simplified: assuming complete object replace for transactionDetails
+         const updatedDetails = { ...originalTransaction.transactionDetails, refunded: true };
+         sync('transactions', { transactionDetails: updatedDetails }, originalTransaction.id);
+     }
 
-     // 3. If Credit Store, add balance to customer
      if (refundType === 'credit' && customerId) {
         updateCustomerCredit(customerId, originalTransaction.amount, 'add');
      }
   };
 
   const updateStock = (productId: string, quantity: number) => {
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: p.stock - quantity } : p));
+    const product = products.find(p => p.id === productId);
+    if (product) {
+        const newStock = product.stock - quantity;
+        updateProduct(productId, { stock: newStock });
+    }
   };
 
-  const addSalesOrder = (order: SalesOrder) => {
+  const addSalesOrder = async (order: SalesOrder) => {
     setSalesOrders([order, ...salesOrders]);
+    if (supabase) {
+        const { items, ...orderData } = order;
+        await sync('sales_orders', orderData);
+        if (items && items.length > 0) {
+            const itemsWithId = items.map(i => ({ ...i, salesOrderId: order.id }));
+            await supabase.from('sales_order_items').insert(toSnake(itemsWithId));
+        }
+    }
   };
 
   const updateSalesOrder = (id: string, updates: Partial<SalesOrder>) => {
     setSalesOrders(prev => prev.map(order => order.id === id ? { ...order, ...updates } : order));
+    // Similar item handling logic as OS would go here if full edit support needed
+    const { items, ...fields } = updates;
+    sync('sales_orders', fields, id);
   };
 
   const updateSettings = (s: Partial<SystemSettings>) => {
     setSettings(prev => ({ ...prev, ...s }));
+    if (supabase) {
+        // System Settings usually single row ID 1
+        supabase.from('system_settings').update(toSnake(s)).eq('id', 1).then();
+    }
   };
 
-  // New Methods
-  const addSupply = (s: Supply) => setSupplies([...supplies, s]);
-  const updateSupplyStock = (id: string, qty: number) => {
-    setSupplies(prev => prev.map(s => s.id === id ? { ...s, stock: s.stock + qty } : s));
+  const addSupply = (s: Supply) => {
+      setSupplies([...supplies, s]);
+      sync('supplies', s);
   };
-  const addService = (s: ServiceItem) => setServices([...services, s]);
+
+  const updateSupplyStock = (id: string, qty: number) => {
+    setSupplies(prev => prev.map(s => {
+        if(s.id === id) {
+            const newStock = s.stock + qty;
+            sync('supplies', {stock: newStock}, id);
+            return { ...s, stock: newStock };
+        }
+        return s;
+    }));
+  };
+
+  const addService = (s: ServiceItem) => {
+      setServices([...services, s]);
+      sync('services', s);
+  };
   
   const addPurchase = (p: Purchase) => {
     setPurchases([p, ...purchases]);
-    // Increase stock
+    sync('purchases', p);
     updateSupplyStock(p.supplyId, p.quantity);
-    // Add Expense Transaction
     addTransaction({
       id: `TR-BUY-${Date.now()}`,
       description: `Compra: ${p.supplyName}`,
@@ -361,9 +390,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  // --- Crediário Methods ---
-  const addInstallmentPlan = (plan: InstallmentPlan) => {
+  const addInstallmentPlan = async (plan: InstallmentPlan) => {
     setInstallmentPlans([plan, ...installmentPlans]);
+    if (supabase) {
+        const { installments, ...planData } = plan;
+        await sync('installment_plans', planData);
+        if (installments.length > 0) {
+            const instWithId = installments.map(i => ({ ...i, planId: plan.id }));
+            await supabase.from('installments').insert(toSnake(instWithId));
+        }
+    }
   };
 
   const payInstallment = (planId: string, installmentNumber: number) => {
@@ -372,23 +408,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const updatedInstallments = plan.installments.map(inst => {
         if (inst.number === installmentNumber && inst.status !== 'Pago') {
-           // Create Transaction
+           const paidAt = new Date().toISOString();
            const newTransaction: Transaction = {
              id: `TR-CRED-${plan.id}-${inst.number}`,
              description: `Crediário ${plan.customerName} - Parc. ${inst.number}`,
              amount: inst.value,
              type: TransactionType.INCOME,
-             date: new Date().toISOString(),
+             date: paidAt,
              category: 'Crediário'
            };
-           // We need to use setTimeout to update transactions state to avoid race condition/render cycle issues here
-           setTimeout(() => setTransactions(curr => [newTransaction, ...curr]), 0);
+           addTransaction(newTransaction);
            
-           return { ...inst, status: 'Pago' as const, paidAt: new Date().toISOString() };
+           if(supabase) {
+               // Must find the installment record ID usually, or update by compound key
+               // Supabase supports filtering by multiple columns
+               supabase.from('installments')
+                 .update(toSnake({ status: 'Pago', paidAt }))
+                 .eq('plan_id', planId)
+                 .eq('number', installmentNumber)
+                 .then();
+           }
+
+           return { ...inst, status: 'Pago' as const, paidAt };
         }
         return inst;
       });
-
       return { ...plan, installments: updatedInstallments };
     }));
   };
@@ -396,6 +440,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateInstallmentValue = (planId: string, installmentNumber: number, newValue: number) => {
      setInstallmentPlans(prev => prev.map(plan => {
         if (plan.id !== planId) return plan;
+        if(supabase) {
+            supabase.from('installments')
+                 .update({ value: newValue })
+                 .eq('plan_id', planId)
+                 .eq('number', installmentNumber)
+                 .then();
+        }
         return {
            ...plan,
            installments: plan.installments.map(inst => 
@@ -405,25 +456,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
      }));
   };
 
-  // --- Payable Accounts Methods ---
   const addPayableAccount = (account: PayableAccount) => {
     setPayableAccounts(prev => [...prev, account]);
+    sync('payable_accounts', account);
   };
 
   const payPayableAccount = (id: string) => {
     setPayableAccounts(prev => prev.map(acc => {
       if (acc.id === id && acc.status !== 'Pago') {
-        // Create Transaction
+        const paidAt = new Date().toISOString();
         const newTransaction: Transaction = {
           id: `TR-PAY-${id}-${Date.now()}`,
           description: `Pagamento: ${acc.description}`,
           amount: acc.amount,
           type: TransactionType.EXPENSE,
-          date: new Date().toISOString(),
+          date: paidAt,
           category: acc.category
         };
-        setTimeout(() => setTransactions(curr => [newTransaction, ...curr]), 0);
-        return { ...acc, status: 'Pago', paidAt: new Date().toISOString() };
+        addTransaction(newTransaction);
+        sync('payable_accounts', { status: 'Pago', paidAt }, id);
+        return { ...acc, status: 'Pago', paidAt };
       }
       return acc;
     }));
@@ -431,32 +483,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deletePayableAccount = (id: string) => {
     setPayableAccounts(prev => prev.filter(acc => acc.id !== id));
+    if (supabase) supabase.from('payable_accounts').delete().eq('id', id).then();
   };
 
   const updateFinancialGoals = (goals: FinancialGoal) => {
     setFinancialGoals(goals);
+    if(supabase) supabase.from('financial_goals').update(toSnake(goals)).eq('id', 1).then();
   };
 
   const resetData = () => {
-    if (confirm("Tem certeza? Todos os dados adicionados serão perdidos.")) {
-      setCustomers(initialCustomers);
-      setProducts(initialProducts);
-      setServiceOrders(initialOS);
-      setTransactions(initialTransactions);
-      setSupplies(initialSupplies);
-      setServices(initialServices);
-      setPurchases([]);
-      setInstallmentPlans(initialInstallmentPlans);
-      setSettings(initialSettings);
-      setPayableAccounts(initialPayables);
-      setFinancialGoals(initialGoals);
+    if (confirm("Isso limpará os dados LOCAIS da sessão (se não usar Supabase) ou tentará limpar o banco (PERIGOSO).")) {
+       if(!supabase) {
+          setCustomers(initialCustomers);
+          setProducts(initialProducts);
+          setServiceOrders(initialOS);
+          setTransactions(initialTransactions);
+          // ... reset others
+          alert("Dados locais resetados.");
+       } else {
+          alert("Função de reset em massa desabilitada para proteção do banco de dados.");
+       }
     }
   };
 
   return (
     <DataContext.Provider value={{
       customers, products, serviceOrders, transactions, salesOrders, settings,
-      supplies, services, purchases, installmentPlans, payableAccounts, financialGoals,
+      supplies, services, purchases, installmentPlans, payableAccounts, financialGoals, isLoading,
       addCustomer, updateCustomer, updateCustomerCredit,
       addProduct, updateProduct, addServiceOrder, updateServiceOrder, addTransaction, processRefund,
       updateStock, 
