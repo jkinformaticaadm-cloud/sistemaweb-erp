@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { Save, Building, Bell, Database, Check, CreditCard, Plus, Trash2, Calculator, Users, Upload, Download, X, UserPlus } from 'lucide-react';
+import { Save, Building, Bell, Database, Check, CreditCard, Plus, Trash2, Calculator, Users, Upload, Download, X, UserPlus, AlertTriangle, Lock } from 'lucide-react';
 import { PaymentMachine, User as UserType, UserRole } from '../types';
 import { useNavigate } from 'react-router-dom';
 
 type SettingsTab = 'general' | 'fees' | 'users';
 
 export const Settings: React.FC = () => {
-  const { settings, updateSettings, backupSystem, restoreSystem } = useData();
+  const { settings, updateSettings, backupSystem, restoreSystem, resetData } = useData();
   const { user, addUser, updateUser, deleteUser } = useAuth();
   const navigate = useNavigate();
 
@@ -24,6 +24,10 @@ export const Settings: React.FC = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserType | null>(null);
   const [userForm, setUserForm] = useState({ name: '', username: '', password: '', role: 'USER' as UserRole });
+
+  // Reset Modal State
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
 
   // Security Check
   useEffect(() => {
@@ -76,6 +80,19 @@ export const Settings: React.FC = () => {
     updateSettings(formData);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
+  };
+
+  const handleResetSystem = async (e: React.FormEvent) => {
+     e.preventDefault();
+     if (user?.password === adminPasswordInput) {
+        await resetData();
+        setIsResetModalOpen(false);
+        setAdminPasswordInput('');
+        alert("Sistema resetado com sucesso. Todos os dados foram apagados.");
+        window.location.reload();
+     } else {
+        alert("Senha de administrador incorreta.");
+     }
   };
 
   // --- Machine Management Logic ---
@@ -326,6 +343,27 @@ export const Settings: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Danger Zone - Reset System */}
+                <div className="bg-red-50 rounded-xl shadow-sm border border-red-200 overflow-hidden">
+                  <div className="p-4 bg-red-100 border-b border-red-200 flex items-center gap-3">
+                    <div className="p-2 bg-red-200 rounded-lg text-red-700">
+                      <AlertTriangle size={20} />
+                    </div>
+                    <h2 className="font-semibold text-red-800">Zona de Perigo</h2>
+                  </div>
+                  <div className="p-6">
+                     <h3 className="font-bold text-red-800 mb-2">Resetar Sistema Completo</h3>
+                     <p className="text-sm text-red-600 mb-4">Esta ação apagará <strong>TODOS</strong> os dados cadastrados (clientes, produtos, financeiro, OS). <br/>Esta ação é irreversível se não houver backup.</p>
+                     <button 
+                        type="button"
+                        onClick={() => setIsResetModalOpen(true)}
+                        className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-red-700 transition-colors shadow-sm"
+                     >
+                        <Trash2 size={16}/> Resetar Sistema
+                     </button>
+                  </div>
+                </div>
+
                 {/* Preferences */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
@@ -565,6 +603,56 @@ export const Settings: React.FC = () => {
             </button>
          </div>
       </form>
+
+      {/* --- RESET PASSWORD MODAL --- */}
+      {isResetModalOpen && (
+         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in">
+               <div className="bg-red-600 text-white p-4 flex items-center gap-2">
+                  <AlertTriangle size={24}/>
+                  <h2 className="font-bold text-lg">Confirmação de Segurança</h2>
+               </div>
+               <div className="p-6">
+                  <p className="text-gray-600 mb-4 text-sm">
+                     Para confirmar o <strong>RESET COMPLETO</strong> do sistema, digite sua senha de administrador. <br/>
+                     <span className="font-bold text-red-600">Esta ação não pode ser desfeita.</span>
+                  </p>
+                  <form onSubmit={handleResetSystem}>
+                     <div className="mb-4">
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Senha do Admin</label>
+                        <div className="relative">
+                           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                           <input 
+                              type="password" 
+                              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+                              placeholder="Digite sua senha..."
+                              value={adminPasswordInput}
+                              onChange={e => setAdminPasswordInput(e.target.value)}
+                              autoFocus
+                           />
+                        </div>
+                     </div>
+                     <div className="flex justify-end gap-2">
+                        <button 
+                           type="button" 
+                           onClick={() => { setIsResetModalOpen(false); setAdminPasswordInput(''); }}
+                           className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium text-sm"
+                        >
+                           Cancelar
+                        </button>
+                        <button 
+                           type="submit"
+                           className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md"
+                        >
+                           Confirmar Reset
+                        </button>
+                     </div>
+                  </form>
+               </div>
+            </div>
+         </div>
+      )}
+
       <div className="h-20"></div> {/* Spacer for fixed footer */}
     </div>
   );

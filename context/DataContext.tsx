@@ -51,7 +51,7 @@ interface DataContextType {
   deletePayableAccount: (id: string) => void;
   updateFinancialGoals: (goals: FinancialGoal) => void;
 
-  resetData: () => void;
+  resetData: () => Promise<void>;
   backupSystem: () => void;
   restoreSystem: (file: File) => Promise<boolean>;
 }
@@ -486,18 +486,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if(supabase) supabase.from('financial_goals').update(toSnake(goals)).eq('id', 1).then();
   };
 
-  const resetData = () => {
-    if (confirm("Isso limpará os dados LOCAIS da sessão (se não usar Supabase) ou tentará limpar o banco (PERIGOSO).")) {
-       if(!supabase) {
-          setCustomers(initialCustomers);
-          setProducts(initialProducts);
-          setServiceOrders(initialOS);
-          setTransactions(initialTransactions);
-          // ... reset others
-          alert("Dados locais resetados.");
-       } else {
-          alert("Função de reset em massa desabilitada para proteção do banco de dados.");
-       }
+  const resetData = async () => {
+    // Clear Local State
+    setCustomers([]);
+    setProducts([]);
+    setServiceOrders([]);
+    setTransactions([]);
+    setSalesOrders([]);
+    setSupplies([]);
+    setServices([]);
+    setPurchases([]);
+    setInstallmentPlans([]);
+    setPayableAccounts([]);
+    
+    // Clear Supabase Data if connected
+    if (supabase) {
+        try {
+            await Promise.all([
+                supabase.from('service_order_items').delete().neq('id', 0), // Delete child tables first
+                supabase.from('sales_order_items').delete().neq('id', 0),
+                supabase.from('installments').delete().neq('id', 0),
+            ]);
+            
+            await Promise.all([
+                supabase.from('customers').delete().neq('id', '0'), // Hack to delete all rows
+                supabase.from('products').delete().neq('id', '0'),
+                supabase.from('service_orders').delete().neq('id', '0'),
+                supabase.from('transactions').delete().neq('id', '0'),
+                supabase.from('sales_orders').delete().neq('id', '0'),
+                supabase.from('supplies').delete().neq('id', '0'),
+                supabase.from('services').delete().neq('id', '0'),
+                supabase.from('purchases').delete().neq('id', '0'),
+                supabase.from('installment_plans').delete().neq('id', '0'),
+                supabase.from('payable_accounts').delete().neq('id', '0')
+            ]);
+        } catch (error) {
+            console.error("Erro ao resetar Supabase:", error);
+            alert("Erro ao limpar dados do banco de dados online. Dados locais foram limpos.");
+        }
     }
   };
 
@@ -548,9 +574,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (data.payableAccounts) setPayableAccounts(data.payableAccounts);
           if (data.financialGoals) setFinancialGoals(data.financialGoals);
 
-          // If supabase is active, we might need to push this data, but for now assuming Restore replaces Local State primarily
-          // or is used for migration. Full DB restore usually done via DB tools.
-          
           resolve(true);
         } catch (error) {
           console.error("Erro ao restaurar backup:", error);
