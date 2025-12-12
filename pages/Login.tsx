@@ -94,7 +94,6 @@ export const Login: React.FC = () => {
           <div className="mt-8 text-center text-xs text-gray-400 bg-gray-50 p-3 rounded-lg border border-dashed border-gray-200">
              <div className="flex justify-center mb-1 text-gray-500"><ShieldCheck size={16} /></div>
              <p>Acesso exclusivo para funcionários.</p>
-             <p>Admin Padrão: <strong>admin</strong> | <strong>123</strong></p>
           </div>
         </div>
       </div>
