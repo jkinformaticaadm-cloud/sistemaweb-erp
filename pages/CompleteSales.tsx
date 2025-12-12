@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { SalesOrder, OrderStatus, OSItem, Transaction, TransactionType } from '../types';
 import { 
-  Package, Search, User, Plus, Trash2, Save, X, MessageCircle, Edit, Printer, ShoppingCart
+  Package, Search, User, Plus, Trash2, Save, X, MessageCircle, Edit, Printer, ShoppingCart, Truck
 } from 'lucide-react';
 
 export const CompleteSales: React.FC = () => {
@@ -285,8 +285,8 @@ export const CompleteSales: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200">
              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Venda Completa (Pedidos)</h1>
-                <p className="text-gray-500 text-sm">Gerenciamento detalhado de encomendas e vendas com entrega</p>
+                <h1 className="text-2xl font-bold text-gray-800">Encomendas e Pedidos</h1>
+                <p className="text-gray-500 text-sm">Gerenciamento detalhado de vendas e entregas</p>
              </div>
         </div>
 
@@ -306,7 +306,7 @@ export const CompleteSales: React.FC = () => {
                   onClick={() => handleOpenOrderModal()}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm whitespace-nowrap"
                >
-                  <Plus size={20}/> Nova Venda / Encomenda
+                  <Plus size={20}/> Nova Encomenda / Venda
                </button>
             </div>
 
