@@ -26,7 +26,6 @@ const PatternLock = ({
    readOnly?: boolean,
    size?: number
 }) => {
-   // ... (same as original file)
    const [points, setPoints] = useState<number[]>([]);
 
    useEffect(() => {
@@ -208,8 +207,8 @@ export const ServiceOrders: React.FC = () => {
     const client = customers.find(c => c.id === printingOS.customerId);
 
     return (
-       <div id="os-print-modal" className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
-          <div className="bg-white w-full max-w-4xl min-h-[90vh] shadow-2xl overflow-hidden flex flex-col print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible">
+       <div id="os-print-modal" className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 print:p-0 print:bg-white">
+          <div className="bg-white w-full max-w-4xl min-h-[90vh] shadow-2xl overflow-hidden flex flex-col print:shadow-none print:w-full print:h-auto print:min-h-0 print:overflow-visible print:rounded-none">
               
               {/* Header Actions (Hidden on Print) */}
               <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden sticky top-0 z-10 shrink-0">
@@ -217,40 +216,40 @@ export const ServiceOrders: React.FC = () => {
                  <button onClick={() => setPrintingOS(null)} className="hover:text-gray-300"><X size={24}/></button>
               </div>
 
-              {/* Printable Content (Matches Complete Sales Style) */}
-              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-8 print:text-xs print:overflow-visible">
+              {/* Printable Content (Compact Mode) */}
+              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-6 text-gray-800 font-sans print:p-6 print:space-y-3 print:text-xs print:overflow-visible">
                  
                  {/* Header */}
-                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">
-                    <div className="flex items-center gap-4">
-                       <div className="w-16 h-16 bg-white border border-gray-200 flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent overflow-hidden">
+                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 print:pb-2 print:border-b">
+                    <div className="flex items-center gap-4 print:gap-2">
+                       <div className="w-16 h-16 bg-white border border-gray-200 flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent overflow-hidden print:w-12 print:h-12">
                           {settings.logo ? <img src={settings.logo} className="w-full h-full object-contain p-1" /> : "RTJK"}
                        </div>
                        <div>
-                          <h1 className="text-2xl font-bold uppercase">{settings.companyName}</h1>
-                          <p className="text-sm">CNPJ: {settings.cnpj}</p>
-                          <p className="text-sm">{settings.address}</p>
-                          <p className="text-sm">Tel: {settings.phone}</p>
+                          <h1 className="text-2xl font-bold uppercase print:text-lg">{settings.companyName}</h1>
+                          <p className="text-sm print:text-[10px]">CNPJ: {settings.cnpj}</p>
+                          <p className="text-sm print:text-[10px]">{settings.address}</p>
+                          <p className="text-sm print:text-[10px]">Tel: {settings.phone}</p>
                        </div>
                     </div>
                     <div className="text-right">
-                       <h2 className="text-3xl font-bold text-gray-800">ORDEM DE SERVIÇO</h2>
-                       <p className="text-xl font-mono text-gray-600 mt-1">#{printingOS.id}</p>
-                       <p className="text-sm text-gray-500 mt-2">Data: {new Date(printingOS.createdAt).toLocaleDateString()}</p>
-                       <p className={`text-sm font-bold uppercase mt-1 px-2 py-0.5 inline-block rounded border border-gray-400 text-gray-600`}>
+                       <h2 className="text-3xl font-bold text-gray-800 print:text-xl">ORDEM DE SERVIÇO</h2>
+                       <p className="text-xl font-mono text-gray-600 mt-1 print:text-sm">#{printingOS.id}</p>
+                       <p className="text-sm text-gray-500 mt-2 print:mt-0 print:text-[10px]">Data: {new Date(printingOS.createdAt).toLocaleDateString()} {new Date(printingOS.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                       <p className={`text-sm font-bold uppercase mt-1 px-2 py-0.5 inline-block rounded border border-gray-400 text-gray-600 print:text-[10px] print:px-1 print:py-0`}>
                           {printingOS.status}
                        </p>
                     </div>
                  </div>
 
                  {/* Two Columns: Client & Device */}
-                 <div className="grid grid-cols-2 gap-6">
+                 <div className="grid grid-cols-2 gap-6 print:gap-3">
                      {/* Client Data */}
-                     <div className="border border-gray-300 rounded-lg p-4">
-                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
-                           <User size={16}/> Dados do Cliente
+                     <div className="border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
+                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black print:pb-1 print:mb-1 print:mx-0 print:mt-0 print:p-0 print:text-xs">
+                           <User size={14} className="print:hidden"/> Dados do Cliente
                         </h3>
-                        <div className="space-y-1 text-sm">
+                        <div className="space-y-1 text-sm print:text-[10px] print:space-y-0.5">
                            <p><span className="font-bold">Nome:</span> {client?.name || printingOS.customerName}</p>
                            <p><span className="font-bold">Telefone:</span> {client?.phone}</p>
                            <p><span className="font-bold">Endereço:</span> {client?.address}, {client?.addressNumber}</p>
@@ -258,29 +257,31 @@ export const ServiceOrders: React.FC = () => {
                      </div>
 
                      {/* Device Data */}
-                     <div className="border border-gray-300 rounded-lg p-4">
-                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg">
-                           <Smartphone size={16}/> Dados do Aparelho
+                     <div className="border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
+                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 flex items-center gap-2 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg print:text-black print:bg-transparent print:border-black print:pb-1 print:mb-1 print:mx-0 print:mt-0 print:p-0 print:text-xs">
+                           <Smartphone size={14} className="print:hidden"/> Dados do Aparelho
                         </h3>
-                        <div className="space-y-1 text-sm">
-                           <p><span className="font-bold">Modelo:</span> {printingOS.device}</p>
-                           <p><span className="font-bold">IMEI:</span> {printingOS.imei || 'N/A'}</p>
-                           <p><span className="font-bold">Serial:</span> {printingOS.serialNumber || 'N/A'}</p>
+                        <div className="space-y-1 text-sm print:text-[10px] print:space-y-0.5">
+                           <div className="grid grid-cols-2 gap-1">
+                              <p><span className="font-bold">Modelo:</span> {printingOS.device}</p>
+                              <p><span className="font-bold">IMEI:</span> {printingOS.imei || 'N/A'}</p>
+                              <p><span className="font-bold">Serial:</span> {printingOS.serialNumber || 'N/A'}</p>
+                           </div>
                            
                            {/* Password Display */}
-                           <div className="mt-2 pt-2 border-t border-gray-200 flex items-start gap-4">
+                           <div className="mt-2 pt-2 border-t border-gray-200 flex items-start gap-4 print:mt-1 print:pt-1 print:border-black">
                               <div>
-                                 <span className="font-bold block text-xs uppercase mb-1">Senha (PIN/Texto)</span>
-                                 <div className="border border-gray-400 px-2 py-1 rounded bg-gray-50 min-w-[80px] text-center font-mono">
+                                 <span className="font-bold block text-xs uppercase mb-1 print:text-[9px] print:mb-0">Senha</span>
+                                 <div className="border border-gray-400 px-2 py-1 rounded bg-gray-50 min-w-[60px] text-center font-mono text-sm print:text-[10px] print:py-0 print:px-1 print:border-black print:bg-transparent">
                                     {printingOS.devicePassword || 'N/A'}
                                  </div>
                               </div>
                               
                               {printingOS.patternPassword && (
                                  <div>
-                                    <span className="font-bold block text-xs uppercase mb-1">Padrão</span>
-                                    <div className="border border-gray-200 rounded p-1 inline-block bg-white">
-                                       <PatternLock value={printingOS.patternPassword} readOnly size={60} />
+                                    <span className="font-bold block text-xs uppercase mb-1 print:text-[9px] print:mb-0">Padrão</span>
+                                    <div className="border border-gray-200 rounded p-1 inline-block bg-white print:border-black">
+                                       <PatternLock value={printingOS.patternPassword} readOnly size={40} />
                                     </div>
                                  </div>
                               )}
@@ -290,46 +291,46 @@ export const ServiceOrders: React.FC = () => {
                  </div>
 
                  {/* Defect Description */}
-                 <div className="border border-gray-300 rounded-lg p-4">
-                     <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg flex items-center gap-2">
-                        <AlertTriangle size={16}/> Defeito Relatado / Diagnóstico
+                 <div className="border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
+                     <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg flex items-center gap-2 print:text-black print:bg-transparent print:border-black print:pb-1 print:mb-1 print:mx-0 print:mt-0 print:p-0 print:text-xs">
+                        <AlertTriangle size={14} className="print:hidden"/> Defeito Relatado / Diagnóstico
                      </h3>
-                     <p className="text-sm whitespace-pre-wrap min-h-[40px]">{printingOS.description}</p>
+                     <p className="text-sm whitespace-pre-wrap min-h-[40px] print:min-h-0 print:text-[10px]">{printingOS.description}</p>
                      {printingOS.aiDiagnosis && (
-                        <div className="mt-2 pt-2 border-t border-gray-100">
-                           <p className="text-xs font-bold text-gray-500">Análise Técnica:</p>
-                           <p className="text-xs text-gray-600 italic">{printingOS.aiDiagnosis}</p>
+                        <div className="mt-2 pt-2 border-t border-gray-100 print:mt-1 print:pt-1 print:border-gray-400">
+                           <p className="text-xs font-bold text-gray-500 print:text-black print:text-[9px]">Análise Técnica:</p>
+                           <p className="text-xs text-gray-600 italic print:text-black print:text-[9px]">{printingOS.aiDiagnosis}</p>
                         </div>
                      )}
                  </div>
 
                  {/* Items Details */}
-                 <div className="border border-gray-300 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Serviços e Peças</div>
+                 <div className="border border-gray-300 rounded-lg overflow-hidden print:border-black">
+                    <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black print:p-1 print:text-[10px]">Serviços e Peças</div>
                     <div className="p-0">
-                       <table className="w-full text-xs">
+                       <table className="w-full text-xs print:text-[10px]">
                           <thead>
-                             <tr className="border-b border-gray-100 text-gray-400">
-                                <th className="p-2 text-left">Item / Detalhes</th>
-                                <th className="p-2 text-center">Tipo</th>
-                                <th className="p-2 text-center">Qtd</th>
-                                <th className="p-2 text-right">Unitário</th>
-                                <th className="p-2 text-right">Total</th>
+                             <tr className="border-b border-gray-100 text-gray-400 print:border-black print:text-black">
+                                <th className="p-2 text-left print:p-1">Item / Detalhes</th>
+                                <th className="p-2 text-center print:p-1">Tipo</th>
+                                <th className="p-2 text-center print:p-1">Qtd</th>
+                                <th className="p-2 text-right print:p-1">Unitário</th>
+                                <th className="p-2 text-right print:p-1">Total</th>
                              </tr>
                           </thead>
                           <tbody>
                              {printingOS.items.length === 0 ? (
-                                <tr><td colSpan={5} className="p-4 text-center text-gray-400">Nenhum item adicionado ainda.</td></tr>
+                                <tr><td colSpan={5} className="p-4 text-center text-gray-400 print:p-2">Nenhum item adicionado ainda.</td></tr>
                              ) : printingOS.items.map((item, idx) => (
-                                <tr key={idx} className="border-b border-gray-50 last:border-0">
-                                   <td className="p-2">
+                                <tr key={idx} className="border-b border-gray-50 last:border-0 print:border-gray-300">
+                                   <td className="p-2 print:p-1">
                                        <span className="font-bold block">{item.name}</span>
-                                       {item.details && <span className="text-[10px] text-gray-500 block mt-0.5 whitespace-pre-wrap">{item.details}</span>}
+                                       {item.details && <span className="text-[10px] text-gray-500 block mt-0.5 whitespace-pre-wrap print:text-[9px] print:text-black">{item.details}</span>}
                                    </td>
-                                   <td className="p-2 text-center uppercase">{item.type === 'product' ? 'Peça' : 'Serviço'}</td>
-                                   <td className="p-2 text-center">{item.quantity}</td>
-                                   <td className="p-2 text-right">R$ {item.unitPrice.toFixed(2)}</td>
-                                   <td className="p-2 text-right">R$ {item.total.toFixed(2)}</td>
+                                   <td className="p-2 text-center uppercase print:p-1">{item.type === 'product' ? 'Peça' : 'Serviço'}</td>
+                                   <td className="p-2 text-center print:p-1">{item.quantity}</td>
+                                   <td className="p-2 text-right print:p-1">R$ {item.unitPrice.toFixed(2)}</td>
+                                   <td className="p-2 text-right print:p-1">R$ {item.total.toFixed(2)}</td>
                                 </tr>
                              ))}
                           </tbody>
@@ -338,21 +339,21 @@ export const ServiceOrders: React.FC = () => {
                  </div>
 
                  {/* Warranty & Financials */}
-                 <div className="flex flex-col md:flex-row gap-6">
-                     <div className="flex-1 border border-gray-300 rounded-lg p-4">
-                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg flex items-center gap-2">
-                           <ShieldCheck size={16}/> Garantia
+                 <div className="flex flex-col md:flex-row gap-6 print:gap-3">
+                     <div className="flex-1 border border-gray-300 rounded-lg p-4 print:p-2 print:border-black">
+                        <h3 className="font-bold border-b border-gray-200 pb-2 mb-3 uppercase text-sm bg-gray-50 -mx-4 -mt-4 p-2 rounded-t-lg flex items-center gap-2 print:text-black print:bg-transparent print:border-black print:pb-1 print:mb-1 print:mx-0 print:mt-0 print:p-0 print:text-xs">
+                           <ShieldCheck size={14} className="print:hidden"/> Garantia
                         </h3>
-                        <p className="text-sm">Termo: <span className="font-bold">{printingOS.warranty}</span></p>
-                        <p className="text-xs text-gray-500 mt-2 text-justify leading-tight">
+                        <p className="text-sm print:text-[10px]">Termo: <span className="font-bold">{printingOS.warranty}</span></p>
+                        <p className="text-xs text-gray-500 mt-2 text-justify leading-tight print:text-[9px] print:text-black print:mt-1">
                            A garantia cobre defeitos de fabricação das peças substituídas ou serviços realizados. Não cobre danos causados por mau uso, quedas, contato com líquidos ou oxidação.
                         </p>
                      </div>
 
-                     <div className="w-full md:w-1/3 border border-gray-300 rounded-lg overflow-hidden">
-                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300">Totalização</div>
-                        <div className="p-4 space-y-2">
-                           <div className="flex justify-between text-2xl font-bold pt-2 mt-2 text-gray-900 border-t border-gray-100">
+                     <div className="w-full md:w-1/3 border border-gray-300 rounded-lg overflow-hidden print:border-black print:w-1/2">
+                        <div className="bg-gray-50 p-2 font-bold uppercase text-sm text-center border-b border-gray-300 print:text-black print:bg-transparent print:border-black print:p-1 print:text-[10px]">Totalização</div>
+                        <div className="p-4 space-y-2 print:p-2">
+                           <div className="flex justify-between text-2xl font-bold pt-2 mt-2 text-gray-900 border-t border-gray-100 print:text-lg print:border-black print:mt-0 print:pt-0">
                               <span>Total</span>
                               <span>R$ {printingOS.totalValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                            </div>
@@ -361,16 +362,21 @@ export const ServiceOrders: React.FC = () => {
                  </div>
 
                  {/* Signature */}
-                 <div className="grid grid-cols-2 gap-16 mt-12 pt-8">
+                 <div className="grid grid-cols-2 gap-16 mt-12 pt-8 print:mt-6 print:pt-4 print:gap-8">
                     <div className="text-center">
                        <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
-                       <p className="text-sm font-bold uppercase">{client?.name || 'Assinatura do Cliente'}</p>
+                       <p className="text-sm font-bold uppercase print:text-[10px]">{client?.name || 'Assinatura do Cliente'}</p>
                     </div>
                     <div className="text-center">
                        <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
-                       <p className="text-sm font-bold uppercase">Técnico Responsável</p>
+                       <p className="text-sm font-bold uppercase print:text-[10px]">Técnico Responsável</p>
                     </div>
                  </div>
+                 
+                 {/* Footer Note */}
+                 <p className="text-center text-[9px] text-gray-400 mt-4 print:text-black">
+                    Documento gerado em {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}
+                 </p>
               </div>
 
               {/* Footer Actions (Hidden on Print) */}
@@ -809,17 +815,16 @@ export const ServiceOrders: React.FC = () => {
                   left: 0;
                   top: 0;
                   width: 100%;
-                  height: 100%;
+                  height: auto !important; /* Critical to allow content to flow */
+                  min-height: 100%;
                   margin: 0;
                   padding: 0;
                   background: white;
                   z-index: 9999;
                   overflow: visible !important;
                }
-               #os-print-modal > div {
-                  height: auto !important;
-                  overflow: visible !important;
-               }
+               /* Hide Scrollbars */
+               ::-webkit-scrollbar { display: none; }
             }
          `}</style>
       </div>
