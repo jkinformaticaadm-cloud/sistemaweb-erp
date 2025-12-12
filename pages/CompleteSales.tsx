@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { SalesOrder, OrderStatus, OSItem, Transaction, TransactionType } from '../types';
 import { 
-  Package, Search, User, Plus, Trash2, Save, X, MessageCircle, Edit, Printer, ShoppingCart, Truck, MapPin
+  Package, Search, User, Plus, Trash2, Save, X, MessageCircle, Edit, Printer, ShoppingCart, Truck, MapPin, CreditCard
 } from 'lucide-react';
 
 export const CompleteSales: React.FC = () => {
@@ -30,7 +30,8 @@ export const CompleteSales: React.FC = () => {
       addressNumber: '',
       description: '', // Descrição adicional
       warranty: 'Sem Garantia',
-      paymentMethod: 'Pendente',
+      paymentMethodType: 'Pendente',
+      installments: 1,
       discount: 0
   });
   
@@ -74,7 +75,6 @@ export const CompleteSales: React.FC = () => {
           let addressNumber = customer?.addressNumber || '';
           let cep = customer?.cep || '';
 
-          // Logica simples de recuperação se foi salvo no technicalNotes
           if (order.technicalNotes) {
              const cepMatch = order.technicalNotes.match(/CEP: ([\d-]+)/);
              if (cepMatch) cep = cepMatch[1];
@@ -92,6 +92,15 @@ export const CompleteSales: React.FC = () => {
              }
           }
 
+          // Parse payment method for edit mode (simple extraction)
+          let pmType = order.paymentMethod || 'Pendente';
+          let pmInst = 1;
+          if (pmType.includes('Crédito')) {
+             pmType = 'Crédito';
+             const match = order.paymentMethod?.match(/\((\d+)x\)/);
+             if (match) pmInst = parseInt(match[1]);
+          }
+
           setOrderForm({
               customerId: order.customerId,
               customerName: order.customerName,
@@ -101,8 +110,9 @@ export const CompleteSales: React.FC = () => {
               addressNumber,
               description: order.description || '',
               warranty: order.warranty || 'Sem Garantia',
-              paymentMethod: order.paymentMethod || 'Pendente',
-              discount: 0 // Simplificação (idealmente persistir desconto no objeto SalesOrder)
+              paymentMethodType: pmType,
+              installments: pmInst,
+              discount: 0 
           });
           setOrderItems(order.items || []);
       } else {
@@ -116,7 +126,8 @@ export const CompleteSales: React.FC = () => {
               addressNumber: '',
               description: '',
               warranty: '90 Dias',
-              paymentMethod: 'Pendente',
+              paymentMethodType: 'Pendente',
+              installments: 1,
               discount: 0
           });
           setOrderItems([]);
@@ -220,6 +231,12 @@ export const CompleteSales: React.FC = () => {
       const subtotal = orderItems.reduce((acc, i) => acc + i.total, 0);
       const total = Math.max(0, subtotal - orderForm.discount);
 
+      // Construct Payment String
+      let finalPaymentMethod = orderForm.paymentMethodType;
+      if (orderForm.paymentMethodType === 'Crédito') {
+         finalPaymentMethod = `Crédito (${orderForm.installments}x)`;
+      }
+
       const orderData: SalesOrder = {
           id: editingOrder ? editingOrder.id : `PED-${Date.now().toString().slice(-6)}`,
           customerId: orderForm.customerId || 'CONSUMIDOR',
@@ -230,7 +247,7 @@ export const CompleteSales: React.FC = () => {
           totalValue: total,
           description: orderForm.description,
           warranty: orderForm.warranty,
-          paymentMethod: orderForm.paymentMethod,
+          paymentMethod: finalPaymentMethod,
           technicalNotes: `End: ${orderForm.address}, ${orderForm.addressNumber} | CEP: ${orderForm.cep}`
       };
 
@@ -314,8 +331,6 @@ export const CompleteSales: React.FC = () => {
     }
 
     const subtotal = printingOrder.items.reduce((acc, i) => acc + i.total, 0);
-    // Discount isn't explicitly saved in SalesOrder type in this version, so we assume TotalValue is final
-    // For display, we can calc diff if needed, or just show Total
     
     return (
        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 overflow-y-auto print:p-0 print:bg-white print:overflow-visible">
@@ -454,6 +469,8 @@ export const CompleteSales: React.FC = () => {
        </div>
     );
   };
+
+  const currentTotal = Math.max(0, orderItems.reduce((acc, i) => acc + i.total, 0) - orderForm.discount);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -744,16 +761,34 @@ export const CompleteSales: React.FC = () => {
                                      <label className="block text-xs font-bold text-gray-600 uppercase mb-1">Forma Pagto</label>
                                      <select 
                                         className="w-full border border-gray-300 rounded p-2 text-sm"
-                                        value={orderForm.paymentMethod}
-                                        onChange={e => setOrderForm({...orderForm, paymentMethod: e.target.value})}
+                                        value={orderForm.paymentMethodType}
+                                        onChange={e => setOrderForm({...orderForm, paymentMethodType: e.target.value})}
                                      >
                                         <option value="Pendente">Pendente</option>
                                         <option>Dinheiro</option>
-                                        <option>Pix</option>
+                                        <option>Pix Máquina</option>
+                                        <option>Pix CNPJ</option>
                                         <option>Cartão Crédito</option>
                                         <option>Cartão Débito</option>
                                      </select>
                                   </div>
+                                  
+                                  {orderForm.paymentMethodType === 'Cartão Crédito' && (
+                                     <div className="col-span-2 animate-fade-in">
+                                        <label className="block text-xs font-bold text-gray-600 uppercase mb-1 flex items-center gap-1"><CreditCard size={12}/> Parcelamento</label>
+                                        <select 
+                                           className="w-full border border-gray-300 rounded p-2 text-sm font-bold text-blue-600"
+                                           value={orderForm.installments}
+                                           onChange={e => setOrderForm({...orderForm, installments: parseInt(e.target.value)})}
+                                        >
+                                           {Array.from({length: 18}, (_, i) => i + 1).map(num => (
+                                              <option key={num} value={num}>
+                                                 {num}x {num > 1 ? `de R$ ${(currentTotal / num).toFixed(2)}` : '(À vista)'}
+                                              </option>
+                                           ))}
+                                        </select>
+                                     </div>
+                                  )}
                               </div>
                           </div>
 
@@ -773,7 +808,7 @@ export const CompleteSales: React.FC = () => {
                               </div>
                               <div className="border-t border-gray-300 pt-3 flex justify-between items-center text-xl font-bold text-blue-800">
                                  <span>Total Final:</span>
-                                 <span>R$ {Math.max(0, orderItems.reduce((acc, i) => acc + i.total, 0) - orderForm.discount).toFixed(2)}</span>
+                                 <span>R$ {currentTotal.toFixed(2)}</span>
                               </div>
                           </div>
                       </div>

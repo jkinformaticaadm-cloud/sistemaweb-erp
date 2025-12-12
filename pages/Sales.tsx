@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { Product, CartItem, Transaction, TransactionType, SalesOrder, OrderStatus } from '../types';
 import { 
-  ShoppingCart, Plus, Minus, Search, ArrowLeft, CheckCircle, History, Printer, RotateCcw, FileText
+  ShoppingCart, Plus, Minus, Search, ArrowLeft, CheckCircle, History, Printer, RotateCcw, FileText, CreditCard
 } from 'lucide-react';
 
 type PDVView = 'pos' | 'history';
@@ -24,7 +24,10 @@ export const Sales: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pdvSearchTerm, setPdvSearchTerm] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
+  
+  // Payment States
+  const [paymentMethodType, setPaymentMethodType] = useState('Dinheiro');
+  const [installments, setInstallments] = useState(1);
   const [discount, setDiscount] = useState(0);
 
   // ==========================================
@@ -76,6 +79,12 @@ export const Sales: React.FC = () => {
      const customer = customers.find(c => c.id === selectedCustomerId);
      const customerName = customer ? customer.name : 'Consumidor Final';
 
+     // Construct Payment Method String
+     let finalPaymentMethod = paymentMethodType;
+     if (paymentMethodType === 'Crédito') {
+        finalPaymentMethod = `Crédito (${installments}x)`;
+     }
+
      // 1. Create Transaction
      const transaction: Transaction = {
         id: `TR-PDV-${Date.now()}`,
@@ -86,7 +95,7 @@ export const Sales: React.FC = () => {
         category: 'Vendas',
         transactionDetails: {
            customerName,
-           paymentMethod,
+           paymentMethod: finalPaymentMethod,
            items: cart
         }
      };
@@ -108,7 +117,7 @@ export const Sales: React.FC = () => {
            type: 'product'
         })),
         totalValue: finalPdvTotal,
-        paymentMethod
+        paymentMethod: finalPaymentMethod
      };
      addSalesOrder(order);
 
@@ -122,7 +131,8 @@ export const Sales: React.FC = () => {
      setDiscount(0);
      setPdvStep('products');
      setSelectedCustomerId('');
-     setPaymentMethod('Dinheiro');
+     setPaymentMethodType('Dinheiro');
+     setInstallments(1);
      setView('history'); // Switch to history to see the sale
   };
 
@@ -281,26 +291,54 @@ export const Sales: React.FC = () => {
                    ) : (
                        <div className="space-y-3 animate-fade-in">
                           <button onClick={() => setPdvStep('customer')} className="text-xs text-gray-500 flex items-center gap-1 hover:text-gray-800"><ArrowLeft size={12}/> Voltar ao cliente</button>
-                          <div>
-                             <label className="text-xs font-bold text-gray-500 uppercase">Forma de Pagamento</label>
-                             <select 
-                                className="w-full border p-2 rounded-lg bg-white mb-2"
-                                value={paymentMethod}
-                                onChange={e => setPaymentMethod(e.target.value)}
-                             >
-                                <option>Dinheiro</option>
-                                <option>Pix</option>
-                                <option>Cartão de Crédito</option>
-                                <option>Cartão de Débito</option>
-                             </select>
-                             <label className="text-xs font-bold text-gray-500 uppercase">Desconto (R$)</label>
-                             <input 
-                                type="number" 
-                                className="w-full border p-2 rounded-lg bg-white"
-                                value={discount}
-                                onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
-                             />
+                          
+                          <div className="space-y-3">
+                             <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Forma de Pagamento</label>
+                                <select 
+                                   className="w-full border p-2 rounded-lg bg-white font-bold text-gray-700"
+                                   value={paymentMethodType}
+                                   onChange={e => {
+                                      setPaymentMethodType(e.target.value);
+                                      if (e.target.value !== 'Crédito') setInstallments(1);
+                                   }}
+                                >
+                                   <option value="Dinheiro">Dinheiro</option>
+                                   <option value="Pix Máquina">Pix Máquina</option>
+                                   <option value="Pix CNPJ">Pix CNPJ</option>
+                                   <option value="Débito">Cartão de Débito</option>
+                                   <option value="Crédito">Cartão de Crédito</option>
+                                </select>
+                             </div>
+
+                             {paymentMethodType === 'Crédito' && (
+                                <div className="animate-fade-in">
+                                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block flex items-center gap-1"><CreditCard size={12}/> Parcelamento</label>
+                                   <select 
+                                      className="w-full border p-2 rounded-lg bg-white text-blue-600 font-bold"
+                                      value={installments}
+                                      onChange={e => setInstallments(parseInt(e.target.value))}
+                                   >
+                                      {Array.from({length: 18}, (_, i) => i + 1).map(num => (
+                                         <option key={num} value={num}>
+                                            {num}x {num > 1 ? `de R$ ${(finalPdvTotal / num).toFixed(2)}` : '(À vista)'}
+                                         </option>
+                                      ))}
+                                   </select>
+                                </div>
+                             )}
+
+                             <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Desconto (R$)</label>
+                                <input 
+                                   type="number" 
+                                   className="w-full border p-2 rounded-lg bg-white"
+                                   value={discount}
+                                   onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
+                                />
+                             </div>
                           </div>
+
                           <div className="flex justify-between items-center text-lg font-bold border-t border-gray-200 pt-2">
                              <span>Total Final:</span>
                              <span className="text-green-600">R$ {finalPdvTotal.toFixed(2)}</span>
@@ -355,7 +393,7 @@ export const Sales: React.FC = () => {
                                  ) : t.description}
                               </td>
                               <td className="px-6 py-3">
-                                  <span className="bg-gray-100 px-2 py-1 rounded text-xs text-gray-600 border border-gray-200">
+                                  <span className="bg-gray-100 px-2 py-1 rounded text-xs text-gray-600 border border-gray-200 font-bold">
                                      {t.transactionDetails?.paymentMethod || 'Dinheiro'}
                                   </span>
                               </td>
