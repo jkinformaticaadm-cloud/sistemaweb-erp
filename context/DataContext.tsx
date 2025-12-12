@@ -188,11 +188,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Helper to sync with local state and Supabase
   const sync = async (table: string, data: any, id?: string) => {
       if (!supabase) return;
-      const snakeData = toSnake(data);
+      
+      // Sanitização básica para evitar envio de objetos aninhados que não são colunas JSONB
+      const { ...cleanData } = data;
+      
+      const snakeData = toSnake(cleanData);
+      
+      let error;
       if (id) {
-          await supabase.from(table).update(snakeData).eq('id', id);
+          const { error: err } = await supabase.from(table).update(snakeData).eq('id', id);
+          error = err;
       } else {
-          await supabase.from(table).insert(snakeData);
+          const { error: err } = await supabase.from(table).insert(snakeData);
+          error = err;
+      }
+
+      if (error) {
+          console.error(`Erro ao sincronizar tabela ${table}:`, error);
+          alert(`Erro ao salvar dados em ${table}. Verifique o console para mais detalhes.`);
       }
   };
   
@@ -234,12 +247,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addServiceOrder = async (os: ServiceOrder) => {
     setServiceOrders([os, ...serviceOrders]);
     if (supabase) {
-        // Separate items from order
-        const { items, ...orderData } = os;
+        // Separate items and supplies from order to match DB columns
+        const { items, supplies, ...orderData } = os;
+        
         await sync('service_orders', orderData);
+        
         if (items && items.length > 0) {
             const itemsWithId = items.map(i => ({ ...i, serviceOrderId: os.id }));
-            await supabase.from('service_order_items').insert(toSnake(itemsWithId));
+            const { error } = await supabase.from('service_order_items').insert(toSnake(itemsWithId));
+            if (error) console.error("Erro ao salvar itens da OS:", error);
         }
     }
   };
@@ -273,16 +289,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
 
     if (supabase) {
-        // Handle items update if present is complicated, usually requires delete & re-insert for simple apps
-        // For now, we update main fields
-        const { items, ...fieldsToUpdate } = updates;
+        // Handle items update if present
+        const { items, supplies, ...fieldsToUpdate } = updates;
         await sync('service_orders', fieldsToUpdate, id);
         
         // If items changed, replace them (simplest strategy)
         if (items) {
-             await supabase.from('service_order_items').delete().eq('service_order_id', id);
-             const itemsWithId = items.map(i => ({ ...i, serviceOrderId: id }));
-             await supabase.from('service_order_items').insert(toSnake(itemsWithId));
+             const { error: delError } = await supabase.from('service_order_items').delete().eq('service_order_id', id);
+             if (!delError) {
+                 const itemsWithId = items.map(i => ({ ...i, serviceOrderId: id }));
+                 const { error: insError } = await supabase.from('service_order_items').insert(toSnake(itemsWithId));
+                 if (insError) console.error("Erro ao reinserir itens da OS:", insError);
+             } else {
+                 console.error("Erro ao limpar itens antigos da OS:", delError);
+             }
         }
     }
   };
@@ -334,7 +354,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await sync('sales_orders', orderData);
         if (items && items.length > 0) {
             const itemsWithId = items.map(i => ({ ...i, salesOrderId: order.id }));
-            await supabase.from('sales_order_items').insert(toSnake(itemsWithId));
+            const { error } = await supabase.from('sales_order_items').insert(toSnake(itemsWithId));
+            if (error) console.error("Erro ao salvar itens da Venda:", error);
         }
     }
   };
@@ -394,7 +415,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await sync('installment_plans', planData);
         if (installments.length > 0) {
             const instWithId = installments.map(i => ({ ...i, planId: plan.id }));
-            await supabase.from('installments').insert(toSnake(instWithId));
+            const { error } = await supabase.from('installments').insert(toSnake(instWithId));
+            if (error) console.error("Erro ao salvar parcelas:", error);
         }
     }
   };
