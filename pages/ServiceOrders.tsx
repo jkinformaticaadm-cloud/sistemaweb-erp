@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { ServiceOrder, OSStatus, OSItem } from '../types';
 import { 
   Plus, Search, Filter, FileText, User, Smartphone, 
-  Clock, CheckCircle, X, ChevronRight, Phone, Printer, Trash2, Wrench, Package, DollarSign, ShieldCheck
+  Clock, CheckCircle, X, ChevronRight, Phone, Printer, Trash2, Wrench, Package, DollarSign, ShieldCheck, MessageCircle
 } from 'lucide-react';
 
 export const ServiceOrders: React.FC = () => {
@@ -196,6 +196,27 @@ export const ServiceOrders: React.FC = () => {
 
      setIsModalOpen(false);
      resetForm();
+  };
+
+  // --- Enviar WhatsApp ---
+  const handleSendWhatsApp = (os: ServiceOrder) => {
+      const client = customers.find(c => c.id === os.customerId);
+      if (!client) return alert('Cliente não encontrado.');
+      
+      const phone = client.phone.replace(/\D/g, '');
+      if (!phone) return alert('Cliente sem telefone cadastrado.');
+
+      const message = `Olá *${client.name}*, aqui é da *${settings.companyName}*.\n\n` +
+                      `📄 *Atualização da Ordem de Serviço #${os.id}*\n` +
+                      `📱 Aparelho: ${os.device}\n` +
+                      `🛠️ Status: *${os.status}*\n` +
+                      `💰 Valor Total: R$ ${os.totalValue.toFixed(2)}\n\n` +
+                      `Qualquer dúvida, estamos à disposição!`;
+      
+      // Assume BR (55) se não tiver código do país
+      const fullPhone = phone.length <= 11 ? `55${phone}` : phone;
+      
+      window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   // --- Componente de Impressão ---
@@ -506,6 +527,13 @@ export const ServiceOrders: React.FC = () => {
                                </td>
                                <td className="px-6 py-4 align-top text-center">
                                   <div className="flex justify-center gap-2">
+                                     <button 
+                                        onClick={() => handleSendWhatsApp(os)}
+                                        className="p-2 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                        title="Enviar no WhatsApp"
+                                     >
+                                        <MessageCircle size={18}/>
+                                     </button>
                                      <button 
                                         onClick={() => handleOpenModal(os)} 
                                         className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
