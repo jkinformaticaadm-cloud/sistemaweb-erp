@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { SalesOrder, OrderStatus, OSItem, Transaction, TransactionType } from '../types';
 import { 
-  Package, Search, User, Plus, Trash2, Save, X, MessageCircle, Edit, Printer, ShoppingCart, Truck
+  Package, Search, User, Plus, Trash2, Save, X, MessageCircle, Edit, Printer, ShoppingCart, Truck, MapPin
 } from 'lucide-react';
 
 export const CompleteSales: React.FC = () => {
@@ -17,6 +17,7 @@ export const CompleteSales: React.FC = () => {
   // ==========================================
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null);
+  const [printingOrder, setPrintingOrder] = useState<SalesOrder | null>(null); // Estado para impressão
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
   
   // --- Form States for New/Edit Order ---
@@ -67,14 +68,28 @@ export const CompleteSales: React.FC = () => {
       if (order) {
           setEditingOrder(order);
           const customer = customers.find(c => c.id === order.customerId);
-          // Tenta extrair dados do endereço se disponíveis
+          
+          // Tenta extrair endereço salvo nas notas ou usa do cadastro atual
           let address = customer?.address || '';
           let addressNumber = customer?.addressNumber || '';
           let cep = customer?.cep || '';
 
-          // Se tiver technicalNotes com endereço salvo, tenta usar (opcional)
-          if (order.technicalNotes && order.technicalNotes.includes('| CEP:')) {
-             // Lógica simples de parse se necessário
+          // Logica simples de recuperação se foi salvo no technicalNotes
+          if (order.technicalNotes) {
+             const cepMatch = order.technicalNotes.match(/CEP: ([\d-]+)/);
+             if (cepMatch) cep = cepMatch[1];
+             
+             const endMatch = order.technicalNotes.match(/End: (.*?) \|/);
+             if (endMatch) {
+                 const fullAddr = endMatch[1];
+                 const lastComma = fullAddr.lastIndexOf(',');
+                 if (lastComma > -1) {
+                     address = fullAddr.substring(0, lastComma).trim();
+                     addressNumber = fullAddr.substring(lastComma + 1).trim();
+                 } else {
+                     address = fullAddr;
+                 }
+             }
           }
 
           setOrderForm({
@@ -87,7 +102,7 @@ export const CompleteSales: React.FC = () => {
               description: order.description || '',
               warranty: order.warranty || 'Sem Garantia',
               paymentMethod: order.paymentMethod || 'Pendente',
-              discount: 0 // Simplificação
+              discount: 0 // Simplificação (idealmente persistir desconto no objeto SalesOrder)
           });
           setOrderItems(order.items || []);
       } else {
@@ -276,7 +291,168 @@ export const CompleteSales: React.FC = () => {
   };
 
   const handlePrintOrder = (order: SalesOrder) => {
-     alert("Funcionalidade de impressão enviada para a fila.");
+     setPrintingOrder(order);
+  };
+
+  // ==========================================
+  //       PRINT MODAL COMPONENT
+  // ==========================================
+  const OrderPrintModal = () => {
+    if (!printingOrder) return null;
+    const client = customers.find(c => c.id === printingOrder.customerId);
+    
+    // Parse Address info from technicalNotes if available, or use Customer data
+    let address = client?.address || '';
+    let addressNumber = client?.addressNumber || '';
+    let cep = client?.cep || '';
+
+    if (printingOrder.technicalNotes) {
+        const addrMatch = printingOrder.technicalNotes.match(/End: (.*?) \|/);
+        if (addrMatch) address = addrMatch[1];
+        const cepMatch = printingOrder.technicalNotes.match(/CEP: ([\d-]+)/);
+        if (cepMatch) cep = cepMatch[1];
+    }
+
+    const subtotal = printingOrder.items.reduce((acc, i) => acc + i.total, 0);
+    // Discount isn't explicitly saved in SalesOrder type in this version, so we assume TotalValue is final
+    // For display, we can calc diff if needed, or just show Total
+    
+    return (
+       <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 overflow-y-auto print:p-0 print:bg-white print:overflow-visible">
+          <div className="bg-white w-full max-w-4xl shadow-2xl flex flex-col print:shadow-none print:w-full print:max-w-none print:h-auto animate-fade-in">
+              
+              {/* Toolbar */}
+              <div className="bg-gray-800 text-white p-4 flex justify-between items-center print:hidden sticky top-0 z-10">
+                 <h2 className="font-bold flex items-center gap-2"><Printer size={20}/> Visualizar Pedido</h2>
+                 <div className="flex gap-4">
+                    <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded font-bold transition-colors">Imprimir</button>
+                    <button onClick={() => setPrintingOrder(null)} className="hover:text-gray-300"><X size={24}/></button>
+                 </div>
+              </div>
+
+              {/* Folha A4 Layout */}
+              <div className="p-10 font-sans text-gray-800 print:p-0">
+                 
+                 {/* Cabeçalho */}
+                 <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-6">
+                    <div className="flex items-center gap-4">
+                       <div className="w-16 h-16 bg-white border border-gray-200 flex items-center justify-center rounded-lg font-bold text-2xl print:border-black">
+                          {settings.logo ? <img src={settings.logo} className="w-full h-full object-contain p-1" /> : "RTJK"}
+                       </div>
+                       <div>
+                          <h1 className="text-2xl font-bold uppercase">{settings.companyName}</h1>
+                          <p className="text-sm">CNPJ: {settings.cnpj}</p>
+                          <p className="text-sm">{settings.address}</p>
+                          <p className="text-sm">Tel: {settings.phone}</p>
+                       </div>
+                    </div>
+                    <div className="text-right">
+                       <h2 className="text-3xl font-bold text-gray-800">PEDIDO DE VENDA</h2>
+                       <p className="text-xl font-mono text-gray-600 mt-1">#{printingOrder.id}</p>
+                       <p className="text-sm text-gray-500 mt-2">Data: {new Date(printingOrder.createdAt).toLocaleDateString()}</p>
+                       <div className="mt-2 inline-block px-3 py-1 border border-black rounded uppercase font-bold text-xs">
+                          {printingOrder.status}
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Dados Cliente e Entrega */}
+                 <div className="grid grid-cols-2 gap-6 mb-6">
+                     <div className="border border-gray-300 rounded p-4 print:border-black">
+                        <h3 className="font-bold border-b border-gray-300 pb-1 mb-2 uppercase text-sm print:border-black flex items-center gap-2">
+                            <User size={14}/> Cliente
+                        </h3>
+                        <p className="text-sm"><span className="font-bold">Nome:</span> {printingOrder.customerName}</p>
+                        <p className="text-sm"><span className="font-bold">Tel:</span> {client?.phone || 'Não inf.'}</p>
+                        {client?.email && <p className="text-sm"><span className="font-bold">Email:</span> {client.email}</p>}
+                     </div>
+                     <div className="border border-gray-300 rounded p-4 print:border-black">
+                        <h3 className="font-bold border-b border-gray-300 pb-1 mb-2 uppercase text-sm print:border-black flex items-center gap-2">
+                            <MapPin size={14}/> Entrega / Logística
+                        </h3>
+                        <p className="text-sm"><span className="font-bold">Endereço:</span> {address} {addressNumber && `, ${addressNumber}`}</p>
+                        <p className="text-sm"><span className="font-bold">CEP:</span> {cep || 'Retirada'}</p>
+                        {printingOrder.description && (
+                            <p className="text-sm mt-2 italic border-t pt-1 border-dashed border-gray-200">Obs: {printingOrder.description}</p>
+                        )}
+                     </div>
+                 </div>
+
+                 {/* Tabela de Itens */}
+                 <div className="mb-6">
+                    <h3 className="font-bold uppercase text-sm mb-2 pl-1">Itens do Pedido</h3>
+                    <table className="w-full text-sm border-collapse border border-gray-300 print:border-black">
+                       <thead className="bg-gray-100 print:bg-gray-200">
+                          <tr>
+                             <th className="border p-2 text-left print:border-black">Descrição</th>
+                             <th className="border p-2 text-center w-16 print:border-black">Qtd</th>
+                             <th className="border p-2 text-right w-24 print:border-black">Unit.</th>
+                             <th className="border p-2 text-right w-24 print:border-black">Total</th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                          {printingOrder.items.length === 0 ? (
+                             <tr><td colSpan={4} className="border p-4 text-center text-gray-500 italic print:border-black">Nenhum item.</td></tr>
+                          ) : printingOrder.items.map((item, idx) => (
+                             <tr key={idx}>
+                                <td className="border p-2 print:border-black">
+                                    <div className="font-bold">{item.name}</div>
+                                    <div className="text-xs text-gray-500">{item.details}</div>
+                                </td>
+                                <td className="border p-2 text-center print:border-black">{item.quantity}</td>
+                                <td className="border p-2 text-right print:border-black">R$ {item.unitPrice.toFixed(2)}</td>
+                                <td className="border p-2 text-right print:border-black">R$ {item.total.toFixed(2)}</td>
+                             </tr>
+                          ))}
+                       </tbody>
+                    </table>
+                 </div>
+
+                 {/* Totais */}
+                 <div className="flex justify-end mb-12">
+                     <div className="w-1/3 border border-gray-300 rounded overflow-hidden print:border-black">
+                        <div className="bg-gray-100 p-2 font-bold uppercase text-center text-sm border-b border-gray-300 print:border-black print:bg-gray-200">Financeiro</div>
+                        <div className="p-3 space-y-1">
+                           <div className="flex justify-between text-sm">
+                              <span>Subtotal:</span>
+                              <span>R$ {subtotal.toFixed(2)}</span>
+                           </div>
+                           <div className="flex justify-between text-xl font-bold border-t border-gray-300 pt-2 mt-2 print:border-black">
+                              <span>Total Final:</span>
+                              <span>R$ {printingOrder.totalValue.toFixed(2)}</span>
+                           </div>
+                           {printingOrder.paymentMethod && (
+                              <div className="text-xs text-right mt-1 italic">Forma Pagto: {printingOrder.paymentMethod}</div>
+                           )}
+                        </div>
+                     </div>
+                 </div>
+
+                 {/* Garantia */}
+                 <div className="mb-12 border p-3 rounded bg-gray-50 text-xs text-gray-600 print:bg-white print:border-black print:text-black">
+                    <strong>Termo de Garantia ({printingOrder.warranty || 'Padrão'}):</strong> A garantia cobre defeitos de fabricação. Não cobre mau uso, quedas, líquidos ou violação de lacres. 
+                    Produtos eletrônicos tem garantia de 90 dias conforme lei vigente. Trocas somente com este documento e produto em estado original.
+                 </div>
+
+                 {/* Assinaturas */}
+                 <div className="grid grid-cols-2 gap-16 mt-auto">
+                    <div className="text-center">
+                       <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
+                       <p className="text-sm font-bold uppercase">{printingOrder.customerName}</p>
+                       <p className="text-xs text-gray-500">Assinatura do Cliente</p>
+                    </div>
+                    <div className="text-center">
+                       <div className="border-t border-black w-3/4 mx-auto mb-2"></div>
+                       <p className="text-sm font-bold uppercase">{settings.companyName}</p>
+                       <p className="text-xs text-gray-500">Vendedor / Responsável</p>
+                    </div>
+                 </div>
+                 
+                 <p className="text-center text-[10px] text-gray-400 mt-8 print:text-black">Documento gerado em {new Date().toLocaleString()}</p>
+              </div>
+          </div>
+       </div>
+    );
   };
 
   return (
@@ -616,6 +792,17 @@ export const CompleteSales: React.FC = () => {
             </div>
          </div>
       )}
+
+      {/* --- PRINT PREVIEW MODAL --- */}
+      <OrderPrintModal />
+      <style>{`
+         @media print {
+            body * { visibility: hidden; }
+            .fixed, .fixed * { visibility: visible; }
+            .fixed { position: absolute; left: 0; top: 0; width: 100%; height: auto; background: white; padding: 0; }
+            ::-webkit-scrollbar { display: none; }
+         }
+      `}</style>
     </div>
   );
 };
