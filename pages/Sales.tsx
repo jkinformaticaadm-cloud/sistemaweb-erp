@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { Product, CartItem, Transaction, TransactionType, SalesOrder, OrderStatus } from '../types';
 import { 
-  ShoppingCart, Plus, Minus, Search, ArrowLeft, CheckCircle, History, Printer, RotateCcw, FileText, CreditCard
+  ShoppingCart, Plus, Minus, Search, ArrowLeft, CheckCircle, History, Printer, RotateCcw, FileText, CreditCard, X, AlertTriangle
 } from 'lucide-react';
 
 type PDVView = 'pos' | 'history';
@@ -16,6 +16,9 @@ export const Sales: React.FC = () => {
   
   // --- Global View State ---
   const [view, setView] = useState<PDVView>('pos');
+
+  // Refund Modal State
+  const [refundData, setRefundData] = useState<{ t: Transaction, customerName: string } | null>(null);
 
   // ==========================================
   //      PDV RÁPIDO (Quick POS) STATES
@@ -136,10 +139,29 @@ export const Sales: React.FC = () => {
      setView('history'); // Switch to history to see the sale
   };
 
-  const handleRefund = (t: Transaction) => {
-      if(confirm(`Deseja realmente estornar a venda de R$ ${t.amount.toFixed(2)}?`)) {
-          processRefund(t, 'money');
+  // --- Refund Logic ---
+  const initiateRefund = (t: Transaction) => {
+      setRefundData({ t, customerName: t.transactionDetails?.customerName || 'Consumidor Final' });
+  };
+
+  const executeRefund = (type: 'money' | 'credit') => {
+      if (!refundData) return;
+      
+      let customerId: string | undefined;
+      
+      if (type === 'credit') {
+          // Find customer by name from transaction history
+          const customer = customers.find(c => c.name === refundData.customerName);
+          if (!customer) {
+              alert("Não foi possível identificar o cadastro do cliente para lançar crédito. Realize o estorno em dinheiro.");
+              return;
+          }
+          customerId = customer.id;
       }
+
+      processRefund(refundData.t, type, customerId);
+      setRefundData(null);
+      alert(type === 'credit' ? "Valor estornado e adicionado ao saldo do cliente!" : "Estorno registrado com sucesso!");
   };
 
   const handlePrintReceipt = (t: Transaction) => {
@@ -401,7 +423,7 @@ export const Sales: React.FC = () => {
                               <td className="px-6 py-3 text-center flex justify-center gap-2">
                                   <button onClick={() => handlePrintReceipt(t)} className="text-blue-600 hover:bg-blue-50 p-2 rounded" title="Imprimir Recibo"><Printer size={16}/></button>
                                   {!t.transactionDetails?.refunded && (
-                                     <button onClick={() => handleRefund(t)} className="text-red-500 hover:bg-red-50 p-2 rounded" title="Estornar Venda"><RotateCcw size={16}/></button>
+                                     <button onClick={() => initiateRefund(t)} className="text-red-500 hover:bg-red-50 p-2 rounded" title="Estornar Venda"><RotateCcw size={16}/></button>
                                   )}
                                   {t.transactionDetails?.refunded && <span className="text-[10px] text-red-500 border border-red-200 bg-red-50 px-1 rounded uppercase font-bold">Estornado</span>}
                               </td>
@@ -410,6 +432,54 @@ export const Sales: React.FC = () => {
                      )}
                   </tbody>
                </table>
+            </div>
+         </div>
+      )}
+
+      {/* --- REFUND MODAL --- */}
+      {refundData && (
+         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in">
+               <div className="bg-red-600 text-white p-4 flex justify-between items-center">
+                  <h3 className="font-bold text-lg flex items-center gap-2"><AlertTriangle size={20}/> Confirmar Estorno</h3>
+                  <button onClick={() => setRefundData(null)}><X size={20}/></button>
+               </div>
+               <div className="p-6">
+                  <p className="text-gray-600 mb-6 text-sm text-center">
+                     Deseja realmente estornar a venda de <strong>R$ {refundData.t.amount.toFixed(2)}</strong>? 
+                     <br/>Isso devolverá os itens ao estoque.
+                  </p>
+                  
+                  <div className="space-y-3">
+                     <button 
+                        onClick={() => executeRefund('money')}
+                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+                     >
+                        <RotateCcw size={18}/> Devolver Dinheiro
+                     </button>
+                     
+                     <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                           <div className="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div className="relative flex justify-center text-xs">
+                           <span className="bg-white px-2 text-gray-500">OU</span>
+                        </div>
+                     </div>
+
+                     <button 
+                        onClick={() => executeRefund('credit')}
+                        disabled={refundData.customerName === 'Consumidor Final'}
+                        className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors text-white
+                           ${refundData.customerName === 'Consumidor Final' ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                     >
+                        <CreditCard size={18}/> Gerar Crédito em Loja
+                     </button>
+                     {refundData.customerName === 'Consumidor Final' && (
+                        <p className="text-[10px] text-center text-red-500 mt-1">Crédito indisponível para Consumidor Final.</p>
+                     )}
+                  </div>
+               </div>
             </div>
          </div>
       )}

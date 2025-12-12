@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, PieChart, FileText, 
   Printer, AlertTriangle, ShoppingBag, Wrench, CreditCard, 
   Calendar, ArrowRight, Filter, Download, ChevronDown, ChevronUp,
-  Plus, CheckCircle, Trash2, Target, Clock, RotateCcw
+  Plus, CheckCircle, Trash2, Target, Clock, RotateCcw, X
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, AreaChart, Area, CartesianGrid } from 'recharts';
 
@@ -15,7 +15,7 @@ type ReportPeriod = 'today' | 'week' | 'month' | '60days' | '90days';
 
 export const Financial: React.FC = () => {
   const { 
-    transactions, installmentPlans, serviceOrders, products, 
+    transactions, installmentPlans, serviceOrders, products, customers,
     payableAccounts, addPayableAccount, payPayableAccount, deletePayableAccount,
     financialGoals, updateFinancialGoals, processRefund
   } = useData();
@@ -32,6 +32,9 @@ export const Financial: React.FC = () => {
   const [payableAmount, setPayableAmount] = useState('');
   const [payableDate, setPayableDate] = useState('');
   const [payableCategory, setPayableCategory] = useState('Despesas Fixas');
+
+  // Refund Modal State
+  const [refundData, setRefundData] = useState<{ t: Transaction, customerName: string } | null>(null);
 
   // Goal Form State
   const [tempGoals, setTempGoals] = useState(financialGoals);
@@ -147,9 +150,27 @@ export const Financial: React.FC = () => {
     window.print();
   };
 
-  const handleRefundTransaction = (t: Transaction) => {
-      if (!confirm(`Confirma o estorno do lançamento "${t.description}" no valor de R$ ${t.amount.toFixed(2)}?`)) return;
-      processRefund(t, 'money'); // Default to money refund for quick actions
+  const initiateRefund = (t: Transaction) => {
+      setRefundData({ t, customerName: t.transactionDetails?.customerName || 'Consumidor Final' });
+  };
+
+  const executeRefund = (type: 'money' | 'credit') => {
+      if (!refundData) return;
+      
+      let customerId: string | undefined;
+      
+      if (type === 'credit') {
+          const customer = customers.find(c => c.name === refundData.customerName);
+          if (!customer) {
+              alert("Não foi possível identificar o cadastro do cliente para lançar crédito. Realize o estorno em dinheiro.");
+              return;
+          }
+          customerId = customer.id;
+      }
+
+      processRefund(refundData.t, type, customerId);
+      setRefundData(null);
+      alert(type === 'credit' ? "Valor estornado e adicionado ao saldo do cliente!" : "Estorno registrado com sucesso!");
   };
 
   const canRefund = (dateStr: string) => {
@@ -275,36 +296,49 @@ export const Financial: React.FC = () => {
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                           {filteredRecentTransactions.map(t => (
-                              <tr key={t.id} className="hover:bg-gray-50">
-                                 <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
-                                    {new Date(t.date).toLocaleDateString()}
-                                    <span className="text-xs ml-1 opacity-70">{new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                                 </td>
-                                 <td className="px-6 py-3 font-medium text-gray-800">{t.description}</td>
-                                 <td className="px-6 py-3">
-                                    <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 whitespace-nowrap">{t.category}</span>
-                                 </td>
-                                 <td className={`px-6 py-3 text-right font-bold ${t.type === TransactionType.INCOME ? 'text-green-600' : 'text-red-600'}`}>
-                                    {t.type === TransactionType.EXPENSE && '- '}R$ {t.amount.toFixed(2)}
-                                 </td>
-                                 <td className="px-6 py-3 text-center">
-                                    {t.type === TransactionType.INCOME && 
-                                     !t.transactionDetails?.refunded && 
-                                     (t.category === 'Vendas' || t.category === 'Serviços de Assistência') &&
-                                     canRefund(t.date) && (
-                                       <button 
-                                          onClick={() => handleRefundTransaction(t)}
-                                          className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors"
-                                          title="Estornar (Permitido até 30 dias)"
-                                       >
-                                          <RotateCcw size={14}/>
-                                       </button>
-                                    )}
-                                    {t.transactionDetails?.refunded && <span className="text-[10px] text-red-400 font-bold bg-red-50 px-1 rounded border border-red-100">ESTORNADO</span>}
-                                 </td>
-                              </tr>
-                           ))}
+                           {filteredRecentTransactions.map(t => {
+                              // Determine color. Negative Income (Refunds) should look red or distinct
+                              let amountColor = 'text-green-600';
+                              let sign = '';
+                              if (t.type === TransactionType.EXPENSE) {
+                                  amountColor = 'text-red-600';
+                                  sign = '- ';
+                              } else if (t.amount < 0) {
+                                  // This handles the new Refund Type (Negative Income)
+                                  amountColor = 'text-red-500';
+                              }
+
+                              return (
+                                 <tr key={t.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
+                                       {new Date(t.date).toLocaleDateString()}
+                                       <span className="text-xs ml-1 opacity-70">{new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                    </td>
+                                    <td className="px-6 py-3 font-medium text-gray-800">{t.description}</td>
+                                    <td className="px-6 py-3">
+                                       <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 whitespace-nowrap">{t.category}</span>
+                                    </td>
+                                    <td className={`px-6 py-3 text-right font-bold ${amountColor}`}>
+                                       {sign}R$ {Math.abs(t.amount).toFixed(2)}
+                                    </td>
+                                    <td className="px-6 py-3 text-center">
+                                       {t.type === TransactionType.INCOME && t.amount > 0 &&
+                                       !t.transactionDetails?.refunded && 
+                                       (t.category === 'Vendas' || t.category === 'Serviços de Assistência') &&
+                                       canRefund(t.date) && (
+                                          <button 
+                                             onClick={() => initiateRefund(t)}
+                                             className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors"
+                                             title="Estornar"
+                                          >
+                                             <RotateCcw size={14}/>
+                                          </button>
+                                       )}
+                                       {t.transactionDetails?.refunded && <span className="text-[10px] text-red-400 font-bold bg-red-50 px-1 rounded border border-red-100">ESTORNADO</span>}
+                                    </td>
+                                 </tr>
+                              );
+                           })}
                            {filteredRecentTransactions.length === 0 && (
                               <tr><td colSpan={5} className="p-8 text-center text-gray-400">Nenhuma movimentação registrada no período.</td></tr>
                            )}
@@ -643,7 +677,7 @@ export const Financial: React.FC = () => {
                                     {t.category}
                                  </span>
                               </td>
-                              <td className="p-4 text-right font-bold text-green-600">
+                              <td className={`p-4 text-right font-bold ${t.amount < 0 ? 'text-red-500' : 'text-green-600'}`}>
                                  R$ {t.amount.toFixed(2)}
                               </td>
                            </tr>
@@ -730,6 +764,54 @@ export const Financial: React.FC = () => {
                </form>
            </div>
         </div>
+      )}
+
+      {/* --- REFUND MODAL --- */}
+      {refundData && (
+         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in">
+               <div className="bg-red-600 text-white p-4 flex justify-between items-center">
+                  <h3 className="font-bold text-lg flex items-center gap-2"><AlertTriangle size={20}/> Confirmar Estorno</h3>
+                  <button onClick={() => setRefundData(null)}><X size={20}/></button>
+               </div>
+               <div className="p-6">
+                  <p className="text-gray-600 mb-6 text-sm text-center">
+                     Deseja realmente estornar o lançamento de <strong>R$ {refundData.t.amount.toFixed(2)}</strong>? 
+                     <br/>Se houver itens, eles voltarão ao estoque.
+                  </p>
+                  
+                  <div className="space-y-3">
+                     <button 
+                        onClick={() => executeRefund('money')}
+                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+                     >
+                        <RotateCcw size={18}/> Devolver Dinheiro
+                     </button>
+                     
+                     <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                           <div className="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div className="relative flex justify-center text-xs">
+                           <span className="bg-white px-2 text-gray-500">OU</span>
+                        </div>
+                     </div>
+
+                     <button 
+                        onClick={() => executeRefund('credit')}
+                        disabled={refundData.customerName === 'Consumidor Final'}
+                        className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors text-white
+                           ${refundData.customerName === 'Consumidor Final' ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                     >
+                        <CreditCard size={18}/> Gerar Crédito em Loja
+                     </button>
+                     {refundData.customerName === 'Consumidor Final' && (
+                        <p className="text-[10px] text-center text-red-500 mt-1">Crédito indisponível para Consumidor Final.</p>
+                     )}
+                  </div>
+               </div>
+            </div>
+         </div>
       )}
       
       {/* Print Styles */}

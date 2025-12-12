@@ -336,18 +336,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sync('transactions', t);
   };
 
+  const updateStock = (productId: string, quantity: number) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+        const newStock = product.stock - quantity;
+        updateProduct(productId, { stock: newStock });
+    }
+  };
+
   const processRefund = (originalTransaction: Transaction, refundType: 'money' | 'credit', customerId?: string) => {
+     // 1. Restaurar Estoque
+     // Se a transação tem itens, iteramos e devolvemos ao estoque.
+     // updateStock subtrai a quantidade passada. Passando negativo, ele soma (restaura).
+     if (originalTransaction.transactionDetails?.items) {
+         originalTransaction.transactionDetails.items.forEach(item => {
+             // Passamos -item.quantity para que: stock - (-qty) = stock + qty
+             updateStock(item.id, -item.quantity); 
+         });
+     }
+
+     // 2. Criar Transação de Estorno (Receita Negativa para abater do dia)
+     const refundAmount = -Math.abs(originalTransaction.amount); // Garante que seja negativo
+     
      const refundTransaction: Transaction = {
         id: `REF-${originalTransaction.id}-${Date.now()}`,
         description: `Estorno (${refundType === 'money' ? 'Devolução' : 'Crédito'}) - Ref: ${originalTransaction.description}`,
-        amount: originalTransaction.amount,
-        type: TransactionType.EXPENSE,
+        amount: refundAmount,
+        type: TransactionType.INCOME, // Mantém como INCOME mas negativo para reduzir o total de vendas do dia no dashboard
         date: new Date().toISOString(),
         category: 'Estornos',
         transactionDetails: { ...originalTransaction.transactionDetails, refunded: true }
      };
      addTransaction(refundTransaction);
 
+     // 3. Atualizar Transação Original como Estornada
      setTransactions(prev => prev.map(t => 
         t.id === originalTransaction.id 
         ? { ...t, transactionDetails: { ...t.transactionDetails, refunded: true } }
@@ -358,17 +380,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
          sync('transactions', { transactionDetails: updatedDetails }, originalTransaction.id);
      }
 
+     // 4. Adicionar Crédito ao Cliente (se aplicável)
      if (refundType === 'credit' && customerId) {
         updateCustomerCredit(customerId, originalTransaction.amount, 'add');
      }
-  };
-
-  const updateStock = (productId: string, quantity: number) => {
-    const product = products.find(p => p.id === productId);
-    if (product) {
-        const newStock = product.stock - quantity;
-        updateProduct(productId, { stock: newStock });
-    }
   };
 
   const addSalesOrder = async (order: SalesOrder) => {
