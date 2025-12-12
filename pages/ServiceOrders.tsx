@@ -758,7 +758,7 @@ export const ServiceOrders: React.FC = () => {
                                  <td className="p-3 text-right font-bold text-lg text-green-400">R$ {totalValue.toFixed(2)}</td>
                                  <td></td>
                               </tr>
-                           tfoot>
+                           </tfoot>
                         </table>
                      </div>
                   ) : (
