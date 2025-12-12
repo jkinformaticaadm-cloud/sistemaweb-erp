@@ -117,12 +117,18 @@ export const Sales: React.FC = () => {
 
   // Summary Data Calculation
   const summaryData = useMemo(() => {
-    const today = new Date().toLocaleDateString();
-    const todaySales = transactions.filter(t => 
-      t.type === TransactionType.INCOME && 
-      t.category === 'Vendas' &&
-      new Date(t.date).toLocaleDateString() === today
-    ).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort newest first
+    const now = new Date();
+    const todayDay = now.getDate();
+    const todayMonth = now.getMonth();
+    const todayYear = now.getFullYear();
+
+    const todaySales = transactions.filter(t => {
+      if (t.type !== TransactionType.INCOME || t.category !== 'Vendas') return false;
+      
+      const tDate = new Date(t.date);
+      // Compare specific day parts to catch all sales for "today", ignoring time
+      return tDate.getDate() === todayDay && tDate.getMonth() === todayMonth && tDate.getFullYear() === todayYear;
+    }).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort newest first
 
     const total = todaySales.reduce((acc, t) => acc + t.amount, 0);
     const count = todaySales.length;
@@ -138,6 +144,14 @@ export const Sales: React.FC = () => {
 
     return { total, count, avgTicket, chartData, recent: todaySales };
   }, [transactions]);
+
+  // Check if transaction is within 30 days
+  const canRefund = (dateStr: string) => {
+      const saleDate = new Date(dateStr);
+      const limitDate = new Date();
+      limitDate.setDate(limitDate.getDate() - 30);
+      return saleDate >= limitDate;
+  };
 
   const cartTotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0), [cart]);
   const finalTotal = Math.max(0, cartTotal - discount);
@@ -1018,7 +1032,7 @@ export const Sales: React.FC = () => {
                                     <td className="p-3 text-right font-bold text-green-600">R$ {t.amount.toFixed(2)}</td>
                                     <td className="p-3 text-center">
                                        <button onClick={() => openReceiptFromList(t)} className="p-1 hover:bg-gray-200 rounded"><Eye size={16}/></button>
-                                       {!t.transactionDetails?.refunded && <button onClick={() => setTransactionToRefund(t)} className="p-1 hover:bg-red-50 text-red-400 rounded"><Undo2 size={16}/></button>}
+                                       {!t.transactionDetails?.refunded && canRefund(t.date) && <button onClick={() => setTransactionToRefund(t)} className="p-1 hover:bg-red-50 text-red-400 rounded"><Undo2 size={16}/></button>}
                                     </td>
                                  </tr>
                               ))}

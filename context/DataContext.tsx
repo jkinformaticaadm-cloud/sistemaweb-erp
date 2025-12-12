@@ -205,7 +205,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
           console.error(`Erro ao sincronizar tabela ${table}:`, error);
-          alert(`Erro ao salvar dados em ${table}. Verifique o console para mais detalhes.`);
+          // Only alert for non-background syncs usually, but keeping it visible for debug
+          console.warn(`Erro detalhado ao salvar em ${table}:`, error.message, error.details);
       }
   };
   
@@ -245,17 +246,51 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addServiceOrder = async (os: ServiceOrder) => {
-    setServiceOrders([os, ...serviceOrders]);
+    setServiceOrders(prev => [os, ...prev]); // Optimistic update
+    
     if (supabase) {
-        // Separate items and supplies from order to match DB columns
-        const { items, supplies, ...orderData } = os;
+        // Explicitly reconstruct payload to avoid sending 'items', 'supplies' or unknown fields to the parent table
+        const cleanOS = {
+            id: os.id,
+            customer_id: os.customerId,
+            customer_name: os.customerName,
+            device: os.device,
+            imei: os.imei,
+            serial_number: os.serialNumber,
+            device_password: os.devicePassword,
+            pattern_password: os.patternPassword,
+            description: os.description,
+            ai_diagnosis: os.aiDiagnosis,
+            status: os.status,
+            priority: os.priority,
+            created_at: os.createdAt,
+            finished_at: os.finishedAt,
+            total_value: os.totalValue,
+            warranty: os.warranty,
+            technical_notes: os.technicalNotes,
+            payment_method: os.paymentMethod
+        };
+
+        const { error } = await supabase.from('service_orders').insert(cleanOS);
         
-        await sync('service_orders', orderData);
+        if (error) {
+            console.error("Erro CRÍTICO ao salvar Service Order:", error);
+            alert("Erro ao salvar OS no banco de dados: " + error.message);
+            return;
+        }
         
-        if (items && items.length > 0) {
-            const itemsWithId = items.map(i => ({ ...i, serviceOrderId: os.id }));
-            const { error } = await supabase.from('service_order_items').insert(toSnake(itemsWithId));
-            if (error) console.error("Erro ao salvar itens da OS:", error);
+        if (os.items && os.items.length > 0) {
+            const itemsWithId = os.items.map(i => ({ 
+                service_order_id: os.id,
+                name: i.name,
+                details: i.details,
+                quantity: i.quantity,
+                unit_price: i.unitPrice,
+                total: i.total,
+                type: i.type
+            }));
+            const { error: itemsError } = await supabase.from('service_order_items').insert(itemsWithId);
+            if (itemsError) console.error("Erro ao salvar itens da OS:", itemsError);
         }
     }
   };
