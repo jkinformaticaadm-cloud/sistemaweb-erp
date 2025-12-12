@@ -52,6 +52,8 @@ interface DataContextType {
   updateFinancialGoals: (goals: FinancialGoal) => void;
 
   resetData: () => void;
+  backupSystem: () => void;
+  restoreSystem: (file: File) => Promise<boolean>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -308,9 +310,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : t
      ));
      if (supabase) {
-         // Update original transaction
-         // Need to fetch current details, update refunded flag, save back. 
-         // Simplified: assuming complete object replace for transactionDetails
          const updatedDetails = { ...originalTransaction.transactionDetails, refunded: true };
          sync('transactions', { transactionDetails: updatedDetails }, originalTransaction.id);
      }
@@ -342,7 +341,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateSalesOrder = (id: string, updates: Partial<SalesOrder>) => {
     setSalesOrders(prev => prev.map(order => order.id === id ? { ...order, ...updates } : order));
-    // Similar item handling logic as OS would go here if full edit support needed
     const { items, ...fields } = updates;
     sync('sales_orders', fields, id);
   };
@@ -350,7 +348,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSettings = (s: Partial<SystemSettings>) => {
     setSettings(prev => ({ ...prev, ...s }));
     if (supabase) {
-        // System Settings usually single row ID 1
         supabase.from('system_settings').update(toSnake(s)).eq('id', 1).then();
     }
   };
@@ -420,8 +417,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
            addTransaction(newTransaction);
            
            if(supabase) {
-               // Must find the installment record ID usually, or update by compound key
-               // Supabase supports filtering by multiple columns
                supabase.from('installments')
                  .update(toSnake({ status: 'Pago', paidAt }))
                  .eq('plan_id', planId)
@@ -506,6 +501,66 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const backupSystem = () => {
+    const data = {
+      customers,
+      products,
+      serviceOrders,
+      transactions,
+      salesOrders,
+      settings,
+      supplies,
+      services,
+      purchases,
+      installmentPlans,
+      payableAccounts,
+      financialGoals,
+      exportedAt: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `backup_rtjk_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const restoreSystem = async (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target?.result as string);
+          
+          if (data.customers) setCustomers(data.customers);
+          if (data.products) setProducts(data.products);
+          if (data.serviceOrders) setServiceOrders(data.serviceOrders);
+          if (data.transactions) setTransactions(data.transactions);
+          if (data.salesOrders) setSalesOrders(data.salesOrders);
+          if (data.settings) setSettings(data.settings);
+          if (data.supplies) setSupplies(data.supplies);
+          if (data.services) setServices(data.services);
+          if (data.purchases) setPurchases(data.purchases);
+          if (data.installmentPlans) setInstallmentPlans(data.installmentPlans);
+          if (data.payableAccounts) setPayableAccounts(data.payableAccounts);
+          if (data.financialGoals) setFinancialGoals(data.financialGoals);
+
+          // If supabase is active, we might need to push this data, but for now assuming Restore replaces Local State primarily
+          // or is used for migration. Full DB restore usually done via DB tools.
+          
+          resolve(true);
+        } catch (error) {
+          console.error("Erro ao restaurar backup:", error);
+          resolve(false);
+        }
+      };
+      reader.readAsText(file);
+    });
+  };
+
   return (
     <DataContext.Provider value={{
       customers, products, serviceOrders, transactions, salesOrders, settings,
@@ -517,7 +572,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addSupply, updateSupplyStock, addService, addPurchase,
       addInstallmentPlan, payInstallment, updateInstallmentValue,
       addPayableAccount, payPayableAccount, deletePayableAccount, updateFinancialGoals,
-      resetData
+      resetData, backupSystem, restoreSystem
     }}>
       {children}
     </DataContext.Provider>

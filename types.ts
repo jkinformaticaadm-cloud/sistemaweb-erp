@@ -191,6 +191,7 @@ export interface SystemSettings {
   phone: string;
   email: string;
   address: string;
+  logo?: string; // Base64 image string
   enableNotifications: boolean;
   enableSound: boolean;
   pixKey: string;

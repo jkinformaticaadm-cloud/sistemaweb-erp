@@ -32,11 +32,11 @@ export const Login: React.FC = () => {
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col md:flex-row">
         
-        {/* Left Side (Visual) - Hidden on very small screens if desired, but here handled as full card */}
+        {/* Left Side (Visual) - Handled as full card */}
         <div className="w-full p-8 md:p-10">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gray-900 rounded-xl flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4 shadow-lg shadow-blue-900/20">
-              TF
+            <div className="w-20 h-20 bg-gray-900 rounded-xl flex items-center justify-center text-white font-bold text-xl mx-auto mb-4 shadow-lg shadow-blue-900/20">
+              RTJK
             </div>
             <h1 className="text-2xl font-bold text-gray-800">RTJK INFOCELL</h1>
             <p className="text-gray-500 text-sm mt-1">Sistema de Gestão Integrado</p>

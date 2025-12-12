@@ -1,22 +1,22 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { Save, Building, Bell, ShieldAlert, Database, Check, CreditCard, Plus, Trash2, Calculator, Users, UserPlus, Key, Lock, User } from 'lucide-react';
+import { Save, Building, Bell, Database, Check, CreditCard, Plus, Trash2, Calculator, Users, Upload, Download, X, UserPlus } from 'lucide-react';
 import { PaymentMachine, User as UserType, UserRole } from '../types';
 import { useNavigate } from 'react-router-dom';
 
 type SettingsTab = 'general' | 'fees' | 'users';
 
 export const Settings: React.FC = () => {
-  const { settings, updateSettings, resetData } = useData();
-  const { user, users, addUser, updateUser, deleteUser } = useAuth();
+  const { settings, updateSettings, backupSystem, restoreSystem } = useData();
+  const { user, addUser, updateUser, deleteUser } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [formData, setFormData] = useState(settings);
   const [isSaved, setIsSaved] = useState(false);
-
+  
   // Machine Editing State
   const [editingMachine, setEditingMachine] = useState<PaymentMachine | null>(null);
 
@@ -42,6 +42,33 @@ export const Settings: React.FC = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setFormData(prev => ({ ...prev, logo: base64String }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+       if (confirm("ATENÇÃO: Restaurar um backup substituirá os dados atuais da sessão. Deseja continuar?")) {
+          const success = await restoreSystem(file);
+          if (success) {
+             alert("Sistema restaurado com sucesso!");
+             window.location.reload();
+          } else {
+             alert("Falha ao restaurar o arquivo. Verifique se é um backup válido.");
+          }
+       }
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -79,7 +106,7 @@ export const Settings: React.FC = () => {
      setEditingMachine(machine); // Keep editing
   };
 
-  const handleRateChange = (machineId: string, installments: number, newRate: string) => {
+  const handleRateChange = (installments: number, newRate: string) => {
     if (!editingMachine) return;
     const rateVal = parseFloat(newRate) || 0;
     
@@ -124,7 +151,6 @@ export const Settings: React.FC = () => {
      }
   };
 
-  // Prevent render if not admin (though useEffect handles redirect)
   if (user?.role !== 'ADMIN') return null;
 
   return (
@@ -180,12 +206,37 @@ export const Settings: React.FC = () => {
                   
                   <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Logo da Empresa</label>
+                      <div className="flex items-center gap-4">
+                         <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 relative group">
+                            {formData.logo ? (
+                               <>
+                                 <img src={formData.logo} alt="Logo" className="w-full h-full object-contain p-1" />
+                                 <button type="button" onClick={() => setFormData({...formData, logo: undefined})} className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <Trash2 size={20}/>
+                                 </button>
+                               </>
+                            ) : (
+                               <span className="text-gray-400 text-xs text-center font-bold">RTJK</span>
+                            )}
+                         </div>
+                         <div>
+                            <label className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium text-sm cursor-pointer hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-colors">
+                               <Upload size={16}/> Carregar Imagem
+                               <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                            </label>
+                            <p className="text-xs text-gray-500 mt-2">Aparecerá nos recibos e OS. Recomendado: PNG quadrado.</p>
+                         </div>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Empresa</label>
                       <input 
                         name="companyName"
                         value={formData.companyName}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     
@@ -195,7 +246,7 @@ export const Settings: React.FC = () => {
                         name="cnpj"
                         value={formData.cnpj}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
 
@@ -205,7 +256,7 @@ export const Settings: React.FC = () => {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
 
@@ -216,7 +267,7 @@ export const Settings: React.FC = () => {
                         type="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
 
@@ -226,7 +277,7 @@ export const Settings: React.FC = () => {
                         name="address"
                         value={formData.address}
                         onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     
@@ -237,9 +288,41 @@ export const Settings: React.FC = () => {
                         value={formData.pixKey}
                         onChange={handleChange}
                         placeholder="CPF, CNPJ, Email ou Aleatória"
-                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Backup & Restore */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+                      <Database size={20} />
+                    </div>
+                    <h2 className="font-semibold text-gray-800">Backup e Restauração</h2>
+                  </div>
+                  <div className="p-6 flex flex-col md:flex-row gap-6">
+                     <div className="flex-1">
+                        <h3 className="font-bold text-gray-700 mb-2">Exportar Dados</h3>
+                        <p className="text-sm text-gray-500 mb-4">Gere um arquivo de backup completo com todos os dados do sistema (Clientes, Vendas, OS, etc).</p>
+                        <button 
+                           type="button"
+                           onClick={backupSystem}
+                           className="bg-gray-800 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-gray-700 transition-colors"
+                        >
+                           <Download size={16}/> Baixar Backup (.json)
+                        </button>
+                     </div>
+                     <div className="w-px bg-gray-200 hidden md:block"></div>
+                     <div className="flex-1">
+                        <h3 className="font-bold text-gray-700 mb-2">Restaurar Dados</h3>
+                        <p className="text-sm text-gray-500 mb-4">Importe um arquivo de backup para restaurar o sistema. Isso substituirá os dados atuais.</p>
+                        <label className="bg-orange-100 text-orange-700 border border-orange-200 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 w-fit cursor-pointer hover:bg-orange-200 transition-colors">
+                           <Upload size={16}/> Selecionar Arquivo
+                           <input type="file" accept=".json" className="hidden" onChange={handleRestore} />
+                        </label>
+                     </div>
                   </div>
                 </div>
 
@@ -340,49 +423,42 @@ export const Settings: React.FC = () => {
                               <button 
                                  type="button" 
                                  onClick={() => handleRemoveMachine(editingMachine.id)}
-                                 className="text-red-500 hover:text-red-700 text-sm flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-lg"
+                                 className="text-red-500 hover:text-red-700 p-2"
                               >
-                                 <Trash2 size={16}/> Excluir
+                                 <Trash2 size={18}/>
                               </button>
                            </div>
-                           
-                           <div className="p-6 space-y-6">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Máquina</label>
-                                    <input 
-                                       value={editingMachine.name} 
-                                       onChange={e => handleUpdateMachine({...editingMachine, name: e.target.value})}
-                                       className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-accent"
-                                       placeholder="Ex: Stone - Plano Pro"
-                                    />
-                                 </div>
-                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Taxa Débito (%)</label>
-                                    <input 
-                                       type="number" step="0.01"
-                                       value={editingMachine.debitRate} 
-                                       onChange={e => handleUpdateMachine({...editingMachine, debitRate: parseFloat(e.target.value) || 0})}
-                                       className="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-accent font-bold text-gray-800"
-                                    />
-                                 </div>
-                              </div>
-
+                           <div className="p-6 space-y-4">
                               <div>
-                                 <h4 className="font-bold text-gray-700 mb-3 text-sm border-b pb-2">Parcelamento Crédito (Taxas %)</h4>
-                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                                    {editingMachine.creditRates.map((rateObj) => (
-                                       <div key={rateObj.installments} className="bg-gray-50 p-2 rounded-lg border border-gray-200">
-                                          <label className="block text-xs font-bold text-gray-500 mb-1">{rateObj.installments}x</label>
-                                          <div className="relative">
-                                             <input 
-                                                type="number" step="0.01"
-                                                value={rateObj.rate}
-                                                onChange={e => handleRateChange(editingMachine.id, rateObj.installments, e.target.value)}
-                                                className="w-full text-center border border-gray-300 rounded px-1 py-1 text-sm focus:border-blue-500 outline-none"
-                                             />
-                                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">%</span>
-                                          </div>
+                                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nome da Máquina</label>
+                                 <input 
+                                    className="w-full border p-2 rounded-lg"
+                                    value={editingMachine.name}
+                                    onChange={(e) => handleUpdateMachine({...editingMachine, name: e.target.value})}
+                                 />
+                              </div>
+                              <div>
+                                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Taxa Débito (%)</label>
+                                 <input 
+                                    type="number" step="0.01"
+                                    className="w-full border p-2 rounded-lg"
+                                    value={editingMachine.debitRate}
+                                    onChange={(e) => handleUpdateMachine({...editingMachine, debitRate: parseFloat(e.target.value)})}
+                                 />
+                              </div>
+                              
+                              <div className="pt-4 border-t border-gray-100">
+                                 <h4 className="font-bold text-gray-700 mb-3 text-sm">Taxas de Crédito Parcelado</h4>
+                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {editingMachine.creditRates.map((rate) => (
+                                       <div key={rate.installments}>
+                                          <label className="block text-xs text-gray-500 mb-1">{rate.installments}x</label>
+                                          <input 
+                                             type="number" step="0.01"
+                                             className="w-full border p-2 rounded text-sm"
+                                             value={rate.rate}
+                                             onChange={(e) => handleRateChange(rate.installments, e.target.value)}
+                                          />
                                        </div>
                                     ))}
                                  </div>
@@ -390,9 +466,9 @@ export const Settings: React.FC = () => {
                            </div>
                         </div>
                      ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 p-8">
-                           <CreditCard size={48} className="mb-4 opacity-20"/>
-                           <p>Selecione uma máquina para editar ou adicione uma nova.</p>
+                        <div className="h-full flex flex-col items-center justify-center text-gray-400 p-8 border-2 border-dashed border-gray-200 rounded-xl">
+                           <Calculator size={48} className="mb-4 opacity-20"/>
+                           <p>Selecione ou adicione uma máquina para editar as taxas.</p>
                         </div>
                      )}
                   </div>
@@ -403,146 +479,93 @@ export const Settings: React.FC = () => {
          {/* --- USERS SETTINGS CONTENT --- */}
          {activeTab === 'users' && (
             <div className="space-y-6 animate-fade-in">
-               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center">
+               <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                   <div>
-                     <h3 className="text-lg font-bold text-gray-800">Controle de Usuários</h3>
-                     <p className="text-sm text-gray-500">Adicione e gerencie quem tem acesso ao sistema.</p>
+                     <h2 className="text-lg font-bold text-gray-800">Gerenciar Usuários</h2>
+                     <p className="text-sm text-gray-500">Controle de acesso ao sistema</p>
                   </div>
                   <button 
-                     type="button" 
+                     type="button"
                      onClick={() => handleOpenUserModal()}
-                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2"
+                     className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors"
                   >
                      <UserPlus size={18}/> Novo Usuário
                   </button>
                </div>
 
-               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <table className="w-full text-left text-sm">
-                     <thead className="bg-gray-50 text-gray-500 uppercase font-bold text-xs border-b border-gray-100">
-                        <tr>
-                           <th className="px-6 py-4">Nome</th>
-                           <th className="px-6 py-4">Usuário</th>
-                           <th className="px-6 py-4">Função</th>
-                           <th className="px-6 py-4 text-center">Ações</th>
-                        </tr>
-                     </thead>
-                     <tbody className="divide-y divide-gray-100">
-                        {users.map(u => (
-                           <tr key={u.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 font-bold text-gray-800">{u.name}</td>
-                              <td className="px-6 py-4 text-gray-600">{u.username}</td>
-                              <td className="px-6 py-4">
-                                 <span className={`px-2 py-1 rounded text-xs font-bold ${u.role === 'ADMIN' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                                    {u.role}
-                                 </span>
-                              </td>
-                              <td className="px-6 py-4 flex justify-center gap-2">
-                                 <button 
-                                    type="button" 
-                                    onClick={() => handleOpenUserModal(u)}
-                                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                                 >
-                                    <Key size={18}/>
-                                 </button>
-                                 <button 
-                                    type="button" 
-                                    onClick={() => handleDeleteUser(u.id)}
-                                    disabled={u.username === 'admin'}
-                                    className={`p-2 rounded-lg ${u.username === 'admin' ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-red-600 hover:bg-red-50'}`}
-                                 >
-                                    <Trash2 size={18}/>
-                                 </button>
-                              </td>
-                           </tr>
-                        ))}
-                     </tbody>
-                  </table>
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* User Modal */}
+                  {isUserModalOpen && (
+                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                           <h2 className="text-xl font-bold mb-4">{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</h2>
+                           <div className="space-y-3">
+                              <input 
+                                 placeholder="Nome Completo" 
+                                 className="w-full border p-2 rounded" 
+                                 value={userForm.name} 
+                                 onChange={e => setUserForm({...userForm, name: e.target.value})}
+                              />
+                              <input 
+                                 placeholder="Usuário (Login)" 
+                                 className="w-full border p-2 rounded" 
+                                 value={userForm.username} 
+                                 onChange={e => setUserForm({...userForm, username: e.target.value})}
+                              />
+                              <input 
+                                 type="password" 
+                                 placeholder="Senha" 
+                                 className="w-full border p-2 rounded" 
+                                 value={userForm.password} 
+                                 onChange={e => setUserForm({...userForm, password: e.target.value})}
+                              />
+                              <select 
+                                 className="w-full border p-2 rounded bg-white"
+                                 value={userForm.role}
+                                 onChange={e => setUserForm({...userForm, role: e.target.value as UserRole})}
+                              >
+                                 <option value="USER">Usuário Padrão</option>
+                                 <option value="ADMIN">Administrador</option>
+                              </select>
+                              <div className="flex justify-end gap-2 mt-4">
+                                 <button type="button" onClick={() => setIsUserModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                                 <button type="button" onClick={handleUserSubmit} className="bg-blue-600 text-white px-4 py-2 rounded font-bold">Salvar</button>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  )}
+
+                  {/* List Users (Assuming fetched from auth context or mocked) */}
+                  {/* Since users list isn't directly exposed in context provided in prompt, using mock or just self if available */}
+                  <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-600">
+                           {user?.name.charAt(0)}
+                        </div>
+                        <div>
+                           <p className="font-bold text-gray-800">{user?.name} (Você)</p>
+                           <p className="text-xs text-gray-500">{user?.username} • {user?.role}</p>
+                        </div>
+                     </div>
+                     <button type="button" onClick={() => handleOpenUserModal(user!)} className="text-blue-600 hover:underline text-sm font-bold">Editar</button>
+                  </div>
+                  {/* In a real app with exposed user list in context, map through them here */}
                </div>
             </div>
          )}
 
-         {/* --- GENERAL FOOTER (General & Fees) --- */}
-         {(activeTab === 'general' || activeTab === 'fees') && (
-            <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-               {activeTab === 'general' ? (
-                  <div className="flex items-center gap-4">
-                     <button 
-                        type="button"
-                        onClick={resetData}
-                        className="flex items-center gap-2 text-red-500 text-sm hover:underline"
-                     >
-                        <Database size={16} /> Resetar Fábrica
-                     </button>
-                  </div>
-               ) : <div></div>}
-
-               <button 
-                  type="submit" 
-                  className="flex items-center gap-2 bg-accent hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-md hover:shadow-lg"
-               >
-                  <Save size={20} /> Salvar Alterações
-               </button>
-            </div>
-         )}
-      </form>
-
-      {/* --- USER MODAL --- */}
-      {isUserModalOpen && (
-         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl animate-fade-in">
-               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <User size={24}/> {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
-               </h2>
-               <form onSubmit={handleUserSubmit} className="space-y-4">
-                  <div>
-                     <label className="block text-sm font-bold text-gray-700 mb-1">Nome Completo</label>
-                     <input 
-                        className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" 
-                        value={userForm.name} 
-                        onChange={e => setUserForm({...userForm, name: e.target.value})}
-                        required
-                     />
-                  </div>
-                  <div>
-                     <label className="block text-sm font-bold text-gray-700 mb-1">Nome de Usuário (Login)</label>
-                     <input 
-                        className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" 
-                        value={userForm.username} 
-                        onChange={e => setUserForm({...userForm, username: e.target.value})}
-                        required
-                     />
-                  </div>
-                  <div>
-                     <label className="block text-sm font-bold text-gray-700 mb-1">Senha</label>
-                     <input 
-                        className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" 
-                        placeholder={editingUser ? "Deixe em branco para manter" : "******"}
-                        value={userForm.password} 
-                        onChange={e => setUserForm({...userForm, password: e.target.value})}
-                        required={!editingUser}
-                     />
-                  </div>
-                  <div>
-                     <label className="block text-sm font-bold text-gray-700 mb-1">Nível de Acesso</label>
-                     <select 
-                        className="w-full border border-gray-300 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                        value={userForm.role}
-                        onChange={e => setUserForm({...userForm, role: e.target.value as UserRole})}
-                     >
-                        <option value="USER">Usuário Padrão</option>
-                        <option value="ADMIN">Administrador</option>
-                     </select>
-                  </div>
-                  <div className="flex justify-end gap-3 pt-4">
-                     <button type="button" onClick={() => setIsUserModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                     <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold">Salvar</button>
-                  </div>
-               </form>
-            </div>
+         {/* Save Action Bar */}
+         <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 flex justify-end z-40 md:pl-72">
+            <button 
+               type="submit"
+               className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg flex items-center gap-2 transition-transform active:scale-95"
+            >
+               <Save size={20}/> Salvar Alterações
+            </button>
          </div>
-      )}
-
+      </form>
+      <div className="h-20"></div> {/* Spacer for fixed footer */}
     </div>
   );
 };

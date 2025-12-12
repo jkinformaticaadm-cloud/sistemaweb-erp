@@ -55,8 +55,8 @@ export const CompleteSales: React.FC = () => {
                  {/* Header */}
                  <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">
                     <div className="flex items-center gap-4">
-                       <div className="w-16 h-16 bg-gray-800 text-white flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent">
-                          TF
+                       <div className="w-16 h-16 bg-white border border-gray-200 flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent overflow-hidden">
+                          {settings.logo ? <img src={settings.logo} className="w-full h-full object-contain p-1" /> : "RTJK"}
                        </div>
                        <div>
                           <h1 className="text-2xl font-bold uppercase">{settings.companyName}</h1>
@@ -188,6 +188,7 @@ export const CompleteSales: React.FC = () => {
 
   // --- Form Modal ---
   const SalesFormModal = () => {
+     // ... (Existing implementation, just ensure no inline CSS conflicts if any)
      const [formData, setFormData] = useState<Partial<SalesOrder>>({
         customerId: '',
         description: '',

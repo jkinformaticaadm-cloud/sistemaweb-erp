@@ -1,4 +1,5 @@
 
+// ... (imports remain the same)
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, TransactionType, OSItem } from '../types';
@@ -25,6 +26,7 @@ const PatternLock = ({
    readOnly?: boolean,
    size?: number
 }) => {
+   // ... (same as original file)
    const [points, setPoints] = useState<number[]>([]);
 
    useEffect(() => {
@@ -129,13 +131,13 @@ export const ServiceOrders: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const paramCustomerId = searchParams.get('customerId');
 
+  // ... (useEffect and Handlers remain same)
   useEffect(() => {
      if (paramCustomerId) {
         setIsModalOpen(true);
      }
   }, [paramCustomerId]);
 
-  // Handle ESC key to close modals
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -152,7 +154,7 @@ export const ServiceOrders: React.FC = () => {
   const handleCloseModal = () => {
      setIsModalOpen(false);
      setEditingOS(null);
-     setSearchParams({}); // Clear query params to clean URL
+     setSearchParams({}); 
   };
 
   const handlePrint = () => {
@@ -221,8 +223,8 @@ export const ServiceOrders: React.FC = () => {
                  {/* Header */}
                  <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6">
                     <div className="flex items-center gap-4">
-                       <div className="w-16 h-16 bg-gray-800 text-white flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent">
-                          TF
+                       <div className="w-16 h-16 bg-white border border-gray-200 flex items-center justify-center rounded-lg font-bold text-2xl print:text-black print:border print:border-black print:bg-transparent overflow-hidden">
+                          {settings.logo ? <img src={settings.logo} className="w-full h-full object-contain p-1" /> : "RTJK"}
                        </div>
                        <div>
                           <h1 className="text-2xl font-bold uppercase">{settings.companyName}</h1>
@@ -385,7 +387,11 @@ export const ServiceOrders: React.FC = () => {
     );
   };
 
+  // ... (Rest of component methods like NewOSModal, etc. remain unchanged)
+  // Re-inserting NewOSModal for completeness of file context if needed, but for brevity assuming "..." covers existing logic
+  
   const NewOSModal = () => {
+     // ... (Existing implementation)
      // Form State
      const [formData, setFormData] = useState<Partial<ServiceOrder>>({
         customerId: paramCustomerId || '',
@@ -820,9 +826,10 @@ export const ServiceOrders: React.FC = () => {
      );
   };
 
-  // ... (Rest of the component remains unchanged) ...
+  // ... Rest of the file
+  
   const NewPurchaseModal = () => {
-     // ... (Existing NewPurchaseModal code) ...
+     // ... (Existing)
      const [supplyId, setSupplyId] = useState('');
      const [qty, setQty] = useState('');
      const [cost, setCost] = useState('');
@@ -882,7 +889,7 @@ export const ServiceOrders: React.FC = () => {
   };
 
   const FinishOSModal = () => {
-     // ... (Existing FinishOSModal code) ...
+     // ... (Existing)
      const [paymentMethod, setPaymentMethod] = useState('Dinheiro');
      const os = serviceOrders.find(o => o.id === finishModalOSId);
 
@@ -929,7 +936,7 @@ export const ServiceOrders: React.FC = () => {
   };
 
   const DashboardTab = () => (
-    // ... (Existing DashboardTab code) ...
+    // ... (Existing)
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center gap-2">
@@ -1036,6 +1043,7 @@ export const ServiceOrders: React.FC = () => {
   );
 
   const OSListTab = () => {
+     // ... (Existing)
      const [term, setTerm] = useState('');
      const filtered = serviceOrders.filter(os => 
         os.customerName.toLowerCase().includes(term.toLowerCase()) || 
@@ -1160,7 +1168,7 @@ export const ServiceOrders: React.FC = () => {
   };
 
   const PurchasesTab = () => {
-    // ... (Existing PurchasesTab code) ...
+    // ... (Existing)
     return (
       <div className="space-y-6 animate-fade-in">
          <div className="flex justify-between items-center bg-white p-6 rounded-xl border border-gray-100 shadow-sm">

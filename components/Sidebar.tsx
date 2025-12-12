@@ -3,9 +3,11 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, ShoppingCart, Wrench, Users, Package, PieChart, Settings, LogOut, BookOpen, FileBadge } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 
 export const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
+  const { settings } = useData();
 
   const links = [
     { to: "/", icon: <LayoutDashboard size={20} />, label: "Dashboard", roles: ['ADMIN', 'USER'] },
@@ -23,10 +25,14 @@ export const Sidebar: React.FC = () => {
   return (
     <aside className="w-64 bg-primary text-gray-300 flex flex-col h-screen fixed left-0 top-0 z-10 transition-transform print:hidden">
       <div className="p-6 border-b border-gray-700 flex items-center gap-3">
-        <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white font-bold">
-          TF
+        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-primary font-bold overflow-hidden">
+          {settings.logo ? (
+             <img src={settings.logo} alt="Logo" className="w-full h-full object-contain p-0.5" />
+          ) : (
+             "RTJK"
+          )}
         </div>
-        <h1 className="text-xl font-bold text-white">RTJK INFOCELL</h1>
+        <h1 className="text-lg font-bold text-white leading-tight">RTJK INFOCELL</h1>
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
