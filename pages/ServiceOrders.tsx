@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export const ServiceOrders: React.FC = () => {
-  const { serviceOrders, customers, products, settings, addServiceOrder, updateServiceOrder } = useData();
+  const { serviceOrders, customers, products, services, settings, addServiceOrder, updateServiceOrder } = useData();
   
   // --- Estados ---
   const [activeTab, setActiveTab] = useState<'open' | 'finished'>('open');
@@ -40,6 +40,7 @@ export const ServiceOrders: React.FC = () => {
   // Item Adding Inputs
   const [itemType, setItemType] = useState<'product' | 'service'>('service');
   const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedServiceId, setSelectedServiceId] = useState('');
   const [itemName, setItemName] = useState('');
   const [itemPrice, setItemPrice] = useState('');
   const [itemQty, setItemQty] = useState('1');
@@ -63,6 +64,7 @@ export const ServiceOrders: React.FC = () => {
      setItemPrice('');
      setItemQty('1');
      setSelectedProductId('');
+     setSelectedServiceId('');
   };
 
   // --- Open Modal for New/Edit ---
@@ -117,22 +119,28 @@ export const ServiceOrders: React.FC = () => {
      let price = parseFloat(itemPrice);
      const qty = parseInt(itemQty);
 
+     // Validação e Obtenção de Nome Baseado no Catálogo
      if (itemType === 'product') {
         const prod = products.find(p => p.id === selectedProductId);
         if (prod) {
            name = prod.name;
-           price = prod.price; // Use selling price by default
+           // Nota: Usamos o 'price' do input (itemPrice) para permitir edição/desconto na hora
         } else {
            return alert("Selecione um produto.");
         }
      } else {
-        if (!name) return alert("Digite a descrição do serviço.");
+        const serv = services.find(s => s.id === selectedServiceId);
+        if (serv) {
+            name = serv.name;
+        } else {
+            return alert("Selecione um serviço.");
+        }
      }
 
      if (isNaN(price) || price < 0 || isNaN(qty) || qty <= 0) return alert("Valores inválidos.");
 
      const newItem: OSItem = {
-        id: itemType === 'product' ? selectedProductId : `SVC-${Date.now()}`,
+        id: itemType === 'product' ? selectedProductId : (selectedServiceId || `SVC-${Date.now()}`),
         name: name,
         quantity: qty,
         unitPrice: price,
@@ -147,6 +155,7 @@ export const ServiceOrders: React.FC = () => {
      setItemPrice('');
      setItemQty('1');
      setSelectedProductId('');
+     setSelectedServiceId('');
   };
 
   const handleRemoveItem = (index: number) => {
@@ -651,12 +660,21 @@ export const ServiceOrders: React.FC = () => {
                                      {products.map(p => <option key={p.id} value={p.id}>{p.name} (R$ {p.price})</option>)}
                                   </select>
                                ) : (
-                                  <input 
-                                     placeholder="Ex: Troca de Tela"
+                                  <select
                                      className="w-full border border-gray-300 rounded p-2 text-sm"
-                                     value={itemName}
-                                     onChange={e => setItemName(e.target.value)}
-                                  />
+                                     value={selectedServiceId}
+                                     onChange={e => {
+                                        setSelectedServiceId(e.target.value);
+                                        const s = services.find(serv => serv.id === e.target.value);
+                                        if (s) {
+                                           setItemName(s.name);
+                                           setItemPrice(s.price.toString());
+                                        }
+                                     }}
+                                  >
+                                     <option value="">Selecione o Serviço...</option>
+                                     {services.map(s => <option key={s.id} value={s.id}>{s.name} (R$ {s.price})</option>)}
+                                  </select>
                                )}
                             </div>
 
