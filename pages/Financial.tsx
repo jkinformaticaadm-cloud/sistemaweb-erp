@@ -1,12 +1,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { TransactionType, OSStatus, PayableAccount } from '../types';
+import { TransactionType, OSStatus, PayableAccount, Transaction } from '../types';
 import { 
   TrendingUp, TrendingDown, DollarSign, PieChart, FileText, 
   Printer, AlertTriangle, ShoppingBag, Wrench, CreditCard, 
   Calendar, ArrowRight, Filter, Download, ChevronDown, ChevronUp,
-  Plus, CheckCircle, Trash2, Target, Clock
+  Plus, CheckCircle, Trash2, Target, Clock, RotateCcw
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, AreaChart, Area, CartesianGrid } from 'recharts';
 
@@ -17,11 +17,14 @@ export const Financial: React.FC = () => {
   const { 
     transactions, installmentPlans, serviceOrders, products, 
     payableAccounts, addPayableAccount, payPayableAccount, deletePayableAccount,
-    financialGoals, updateFinancialGoals
+    financialGoals, updateFinancialGoals, processRefund
   } = useData();
 
   const [activeTab, setActiveTab] = useState<FinancialTab>('overview');
   const [reportPeriod, setReportPeriod] = useState<ReportPeriod>('today');
+  
+  // Recent Flow State
+  const [recentFilter, setRecentFilter] = useState<'today' | 'week' | 'month'>('today');
 
   // New Payable Form State
   const [showPayableForm, setShowPayableForm] = useState(false);
@@ -95,6 +98,28 @@ export const Financial: React.FC = () => {
      return { filtered, total };
   }, [transactions, reportPeriod]);
 
+  // 6. Recent Transactions Filtered
+  const filteredRecentTransactions = useMemo(() => {
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(now.getDate() - 7);
+      oneWeekAgo.setHours(0,0,0,0);
+      
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setDate(now.getDate() - 30);
+      oneMonthAgo.setHours(0,0,0,0);
+
+      return transactions.filter(t => {
+          const tDate = new Date(t.date);
+          if (recentFilter === 'today') return tDate >= startOfDay;
+          if (recentFilter === 'week') return tDate >= oneWeekAgo;
+          if (recentFilter === 'month') return tDate >= oneMonthAgo;
+          return false;
+      }).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [transactions, recentFilter]);
+
   // --- ACTIONS ---
 
   const handleAddPayable = (e: React.FormEvent) => {
@@ -120,6 +145,18 @@ export const Financial: React.FC = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleRefundTransaction = (t: Transaction) => {
+      if (!confirm(`Confirma o estorno do lançamento "${t.description}" no valor de R$ ${t.amount.toFixed(2)}?`)) return;
+      processRefund(t, 'money'); // Default to money refund for quick actions
+  };
+
+  const canRefund = (dateStr: string) => {
+      const saleDate = new Date(dateStr);
+      const limitDate = new Date();
+      limitDate.setDate(limitDate.getDate() - 30); // 30 days limit
+      return saleDate >= limitDate;
   };
 
   // --- RENDER COMPONENT ---
@@ -218,35 +255,58 @@ export const Financial: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                {/* Transactions Table */}
                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                  <div className="p-4 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3">
                      <h3 className="font-bold text-gray-700">Fluxo de Caixa Recente</h3>
-                     <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">Últimos lançamentos</span>
+                     <div className="flex bg-gray-100 p-1 rounded-lg">
+                        <button onClick={() => setRecentFilter('today')} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${recentFilter === 'today' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Hoje</button>
+                        <button onClick={() => setRecentFilter('week')} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${recentFilter === 'week' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Semana</button>
+                        <button onClick={() => setRecentFilter('month')} className={`px-3 py-1 rounded text-xs font-bold transition-colors ${recentFilter === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Mês</button>
+                     </div>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
                      <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 text-xs uppercase font-medium text-gray-500">
+                        <thead className="bg-gray-50 text-xs uppercase font-medium text-gray-500 sticky top-0">
                            <tr>
                               <th className="px-6 py-3">Data</th>
                               <th className="px-6 py-3">Descrição</th>
                               <th className="px-6 py-3">Categoria</th>
                               <th className="px-6 py-3 text-right">Valor</th>
+                              <th className="px-6 py-3 text-center">Ações</th>
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                           {transactions.slice(0, 8).map(t => (
+                           {filteredRecentTransactions.map(t => (
                               <tr key={t.id} className="hover:bg-gray-50">
-                                 <td className="px-6 py-3 text-gray-500">{new Date(t.date).toLocaleDateString()}</td>
+                                 <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
+                                    {new Date(t.date).toLocaleDateString()}
+                                    <span className="text-xs ml-1 opacity-70">{new Date(t.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                 </td>
                                  <td className="px-6 py-3 font-medium text-gray-800">{t.description}</td>
                                  <td className="px-6 py-3">
-                                    <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">{t.category}</span>
+                                    <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 whitespace-nowrap">{t.category}</span>
                                  </td>
                                  <td className={`px-6 py-3 text-right font-bold ${t.type === TransactionType.INCOME ? 'text-green-600' : 'text-red-600'}`}>
                                     {t.type === TransactionType.EXPENSE && '- '}R$ {t.amount.toFixed(2)}
                                  </td>
+                                 <td className="px-6 py-3 text-center">
+                                    {t.type === TransactionType.INCOME && 
+                                     !t.transactionDetails?.refunded && 
+                                     (t.category === 'Vendas' || t.category === 'Serviços de Assistência') &&
+                                     canRefund(t.date) && (
+                                       <button 
+                                          onClick={() => handleRefundTransaction(t)}
+                                          className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors"
+                                          title="Estornar (Permitido até 30 dias)"
+                                       >
+                                          <RotateCcw size={14}/>
+                                       </button>
+                                    )}
+                                    {t.transactionDetails?.refunded && <span className="text-[10px] text-red-400 font-bold bg-red-50 px-1 rounded border border-red-100">ESTORNADO</span>}
+                                 </td>
                               </tr>
                            ))}
-                           {transactions.length === 0 && (
-                              <tr><td colSpan={4} className="p-8 text-center text-gray-400">Nenhuma transação registrada.</td></tr>
+                           {filteredRecentTransactions.length === 0 && (
+                              <tr><td colSpan={5} className="p-8 text-center text-gray-400">Nenhuma movimentação registrada no período.</td></tr>
                            )}
                         </tbody>
                      </table>
