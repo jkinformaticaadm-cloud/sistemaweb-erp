@@ -7,7 +7,8 @@ export enum OSStatus {
   AGUARDANDO_PECAS = 'Aguardando Peças',
   EM_ANDAMENTO = 'Em Andamento',
   CONCLUIDO = 'Concluído',
-  FINALIZADO = 'Finalizado'
+  FINALIZADO = 'Finalizado',
+  CANCELADO = 'Cancelado'
 }
 
 export enum TransactionType {
@@ -121,6 +122,7 @@ export interface ServiceOrder {
   createdAt: string;
   finishedAt?: string;
   totalValue: number;
+  discount?: number; // Discount applied
   warranty?: string;
   technicalNotes?: string;
   items: OSItem[]; // Combined list of products and services
