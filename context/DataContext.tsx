@@ -38,6 +38,7 @@ interface DataContextType {
   addSupply: (s: Supply) => void;
   updateSupplyStock: (id: string, qty: number) => void;
   addService: (s: ServiceItem) => void;
+  updateService: (id: string, s: Partial<ServiceItem>) => void; // New function
   addPurchase: (p: Purchase) => void;
   
   // Crediário
@@ -416,6 +417,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setServices([...services, s]);
       sync('services', s);
   };
+
+  const updateService = (id: string, updates: Partial<ServiceItem>) => {
+    setServices(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    sync('services', updates, id);
+  };
   
   const addPurchase = (p: Purchase) => {
     setPurchases([p, ...purchases]);
@@ -637,7 +643,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addProduct, updateProduct, addServiceOrder, updateServiceOrder, addTransaction, processRefund,
       updateStock, 
       addSalesOrder, updateSalesOrder, updateSettings, 
-      addSupply, updateSupplyStock, addService, addPurchase,
+      addSupply, updateSupplyStock, addService, updateService, addPurchase,
       addInstallmentPlan, payInstallment, updateInstallmentValue,
       addPayableAccount, payPayableAccount, deletePayableAccount, updateFinancialGoals,
       resetData, backupSystem, restoreSystem
