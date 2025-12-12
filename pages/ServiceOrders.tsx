@@ -5,7 +5,7 @@ import { ServiceOrder, OSStatus, Customer, Supply, ServiceItem, Purchase, Transa
 import { 
   Plus, Search, BrainCircuit, CheckCircle, Clock, FileText, X, 
   Calendar, BarChart3, Wrench, Package, ShoppingCart, Filter, QrCode, 
-  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3, Edit, DollarSign, Download, PenTool, ShieldCheck
+  ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Users, AlertTriangle, Printer, Smartphone, User, Trash2, Lock, Grid3X3, Edit, DollarSign, Download, PenTool, ShieldCheck, Shield
 } from 'lucide-react';
 import { analyzeTechnicalIssue } from '../services/geminiService';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
@@ -71,8 +71,8 @@ const PatternLock = ({
    }).join(' ');
 
    return (
-      <div className="relative select-none" style={{ width: size, height: size }}>
-         <svg viewBox="0 0 100 100" className="w-full h-full bg-white rounded-lg border border-gray-200">
+      <div className="relative select-none inline-block" style={{ width: size, height: size }}>
+         <svg viewBox="0 0 100 100" className={`w-full h-full bg-white rounded-lg ${!readOnly ? 'border border-gray-200' : ''}`}>
             {/* Lines */}
             <path d={pathData} stroke="#3b82f6" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             
@@ -264,8 +264,25 @@ export const ServiceOrders: React.FC = () => {
                            <p><span className="font-bold">Modelo:</span> {printingOS.device}</p>
                            <p><span className="font-bold">IMEI:</span> {printingOS.imei || 'N/A'}</p>
                            <p><span className="font-bold">Serial:</span> {printingOS.serialNumber || 'N/A'}</p>
-                           <p><span className="font-bold">Senha:</span> {printingOS.devicePassword || 'N/A'}</p>
-                           {printingOS.patternPassword && <p className="text-xs italic">[Senha Padrão Anexada]</p>}
+                           
+                           {/* Password Display */}
+                           <div className="mt-2 pt-2 border-t border-gray-200 flex items-start gap-4">
+                              <div>
+                                 <span className="font-bold block text-xs uppercase mb-1">Senha (PIN/Texto)</span>
+                                 <div className="border border-gray-400 px-2 py-1 rounded bg-gray-50 min-w-[80px] text-center font-mono">
+                                    {printingOS.devicePassword || 'N/A'}
+                                 </div>
+                              </div>
+                              
+                              {printingOS.patternPassword && (
+                                 <div>
+                                    <span className="font-bold block text-xs uppercase mb-1">Padrão</span>
+                                    <div className="border border-gray-200 rounded p-1 inline-block bg-white">
+                                       <PatternLock value={printingOS.patternPassword} readOnly size={60} />
+                                    </div>
+                                 </div>
+                              )}
+                           </div>
                         </div>
                      </div>
                  </div>
@@ -325,7 +342,7 @@ export const ServiceOrders: React.FC = () => {
                            <ShieldCheck size={16}/> Garantia
                         </h3>
                         <p className="text-sm">Termo: <span className="font-bold">{printingOS.warranty}</span></p>
-                        <p className="text-[10px] text-gray-500 mt-2 text-justify leading-tight">
+                        <p className="text-xs text-gray-500 mt-2 text-justify leading-tight">
                            A garantia cobre defeitos de fabricação das peças substituídas ou serviços realizados. Não cobre danos causados por mau uso, quedas, contato com líquidos ou oxidação.
                         </p>
                      </div>
@@ -504,204 +521,254 @@ export const ServiceOrders: React.FC = () => {
 
      return (
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-         <div className="bg-white rounded-xl w-full max-w-4xl max-h-[95vh] overflow-y-auto flex flex-col shadow-xl">
+         <div className="bg-white rounded-xl w-full max-w-5xl max-h-[95vh] overflow-y-auto flex flex-col shadow-2xl">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10 shadow-sm shrink-0">
-               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <FileText className="text-blue-600"/> {editingOS ? `Editar OS #${editingOS.id}` : 'Nova Ordem de Serviço'}
-               </h2>
-               <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600"><X size={24}/></button>
+               <div>
+                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                     <FileText className="text-blue-600"/> {editingOS ? `Editar OS #${editingOS.id}` : 'Nova Ordem de Serviço'}
+                  </h2>
+                  <p className="text-sm text-gray-500">Preencha os dados abaixo para registrar a entrada do aparelho.</p>
+               </div>
+               <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors"><X size={24}/></button>
             </div>
             
-            <form onSubmit={submit} className="p-6 space-y-6 flex-1 overflow-y-auto bg-white">
+            <form onSubmit={submit} className="p-8 space-y-8 flex-1 overflow-y-auto bg-gray-50/50">
                
-               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {/* SELECT: Client */}
-                  <div className="md:col-span-2">
-                     <label className="label">Cliente *</label>
-                     <select 
-                        required 
-                        className="input" 
-                        value={formData.customerId} 
-                        onChange={e => setFormData({...formData, customerId: e.target.value})} 
-                        disabled={!!editingOS}
-                     >
-                        <option value="">-- Selecione o Cliente --</option>
-                        {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                     </select>
-                  </div>
-                  
-                  {/* SELECT: Priority */}
-                  <div className="md:col-span-1">
-                     <label className="label">Prioridade</label>
-                     <select 
-                        className="input" 
-                        value={formData.priority} 
-                        onChange={e => setFormData({...formData, priority: e.target.value as any})}
-                     >
-                        <option>Baixa</option>
-                        <option>Média</option>
-                        <option>Alta</option>
-                     </select>
-                  </div>
-
-                  {/* SELECT: Status */}
-                  <div className="md:col-span-1">
-                     <label className="label">Status Inicial</label>
-                     <select 
-                        className="input" 
-                        value={formData.status} 
-                        onChange={e => setFormData({...formData, status: e.target.value as any})}
-                     >
-                        <option>{OSStatus.PENDENTE}</option>
-                        <option>{OSStatus.EM_ANALISE}</option>
-                        <option>{OSStatus.APROVADO}</option>
-                     </select>
-                  </div>
-
-                  {/* TEXT: Device Info */}
-                  <div className="md:col-span-2">
-                     <label className="label">Aparelho / Modelo *</label>
-                     <input 
-                        required 
-                        className="input" 
-                        placeholder="Ex: iPhone 13 Pro Max" 
-                        value={formData.device} 
-                        onChange={e => setFormData({...formData, device: e.target.value})}
-                     />
-                  </div>
-                  <div className="md:col-span-1">
-                     <label className="label">IMEI (Opcional)</label>
-                     <input 
-                        className="input" 
-                        placeholder="00000000000000" 
-                        value={formData.imei} 
-                        onChange={e => setFormData({...formData, imei: e.target.value})}
-                     />
-                  </div>
-                  <div className="md:col-span-1">
-                     <label className="label">Nº de Série</label>
-                     <input 
-                        className="input" 
-                        placeholder="Serial" 
-                        value={formData.serialNumber} 
-                        onChange={e => setFormData({...formData, serialNumber: e.target.value})}
-                     />
-                  </div>
-
-                  {/* TEXT: Security */}
-                  <div className="md:col-span-1">
-                     <label className="label">Senha (PIN/Texto)</label>
-                     <input 
-                        className="input" 
-                        placeholder="Ex: 123456" 
-                        value={formData.devicePassword} 
-                        onChange={e => setFormData({...formData, devicePassword: e.target.value})}
-                     />
-                  </div>
-                  
-                  {/* Pattern Lock Component */}
-                  <div className="md:col-span-3 flex items-center gap-4 border border-gray-300 rounded p-2">
-                     <div className="flex-1">
-                        <label className="label mb-0 flex items-center gap-1">Senha Padrão (Desenho)</label>
+               {/* 1. Cliente e Status */}
+               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                     <User className="text-blue-600" size={20}/> Dados do Cliente e Status
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                     <div className="md:col-span-2">
+                        <label className="label">Cliente *</label>
+                        <select 
+                           required 
+                           className="input" 
+                           value={formData.customerId} 
+                           onChange={e => setFormData({...formData, customerId: e.target.value})} 
+                           disabled={!!editingOS}
+                        >
+                           <option value="">-- Selecione o Cliente --</option>
+                           {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
                      </div>
-                     <div className="transform scale-75 origin-right">
-                        <PatternLock size={100} value={formData.patternPassword} onChange={(val) => setFormData({...formData, patternPassword: val})} />
+                     <div className="md:col-span-1">
+                        <label className="label">Prioridade</label>
+                        <select 
+                           className="input" 
+                           value={formData.priority} 
+                           onChange={e => setFormData({...formData, priority: e.target.value as any})}
+                        >
+                           <option>Baixa</option>
+                           <option>Média</option>
+                           <option>Alta</option>
+                        </select>
+                     </div>
+                     <div className="md:col-span-1">
+                        <label className="label">Status Inicial</label>
+                        <select 
+                           className="input" 
+                           value={formData.status} 
+                           onChange={e => setFormData({...formData, status: e.target.value as any})}
+                        >
+                           <option>{OSStatus.PENDENTE}</option>
+                           <option>{OSStatus.EM_ANALISE}</option>
+                           <option>{OSStatus.APROVADO}</option>
+                        </select>
                      </div>
                   </div>
+               </div>
 
-                  {/* TEXT AREA: Description */}
-                  <div className="md:col-span-4">
-                     <label className="label">Descrição do Defeito *</label>
-                     <textarea 
-                        required 
-                        className="input min-h-[100px]" 
-                        placeholder="Descreva o problema relatado pelo cliente..." 
-                        value={formData.description} 
-                        onChange={e => setFormData({...formData, description: e.target.value})}
-                     />
-                     <div className="mt-2 flex justify-end">
-                        <button type="button" onClick={handleAI} disabled={isAnalyzing || !formData.device || !formData.description} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded flex items-center gap-2 transition-colors border border-blue-200">
-                           <BrainCircuit size={14}/> {isAnalyzing ? 'Analisando...' : 'Diagnóstico IA'}
+               {/* 2. Dados do Aparelho */}
+               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                     <Smartphone className="text-purple-600" size={20}/> Identificação do Aparelho
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="md:col-span-1">
+                        <label className="label">Aparelho / Modelo *</label>
+                        <input 
+                           required 
+                           className="input" 
+                           placeholder="Ex: iPhone 13" 
+                           value={formData.device} 
+                           onChange={e => setFormData({...formData, device: e.target.value})}
+                        />
+                     </div>
+                     <div className="md:col-span-1">
+                        <label className="label">IMEI (Opcional)</label>
+                        <input 
+                           className="input" 
+                           placeholder="00000000000000" 
+                           value={formData.imei} 
+                           onChange={e => setFormData({...formData, imei: e.target.value})}
+                        />
+                     </div>
+                     <div className="md:col-span-1">
+                        <label className="label">Nº de Série (Opcional)</label>
+                        <input 
+                           className="input" 
+                           placeholder="Serial Number" 
+                           value={formData.serialNumber} 
+                           onChange={e => setFormData({...formData, serialNumber: e.target.value})}
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               {/* 3. Segurança e Senhas */}
+               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                     <Shield className="text-red-600" size={20}/> Segurança e Acesso
+                  </h3>
+                  <div className="flex flex-col md:flex-row gap-8 items-start">
+                     <div className="flex-1 w-full">
+                        <label className="label">Senha Numérica / PIN / Texto</label>
+                        <input 
+                           className="input text-lg font-mono tracking-widest text-center h-14" 
+                           placeholder="123456" 
+                           value={formData.devicePassword} 
+                           onChange={e => setFormData({...formData, devicePassword: e.target.value})}
+                        />
+                        <p className="text-xs text-gray-500 mt-2">Informe a senha de desbloqueio de tela se houver.</p>
+                     </div>
+                     
+                     <div className="w-full md:w-auto flex flex-col items-center p-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <label className="label mb-2 text-center w-full block">Senha Padrão (Desenho)</label>
+                        <PatternLock size={140} value={formData.patternPassword} onChange={(val) => setFormData({...formData, patternPassword: val})} />
+                     </div>
+                  </div>
+               </div>
+
+               {/* 4. Diagnóstico */}
+               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                     <AlertTriangle className="text-orange-600" size={20}/> Relato do Cliente / Diagnóstico
+                  </h3>
+                  <div className="space-y-4">
+                     <div>
+                        <label className="label">Descrição do Defeito *</label>
+                        <textarea 
+                           required 
+                           className="input min-h-[100px]" 
+                           placeholder="Descreva detalhadamente o problema relatado pelo cliente..." 
+                           value={formData.description} 
+                           onChange={e => setFormData({...formData, description: e.target.value})}
+                        />
+                     </div>
+                     
+                     <div className="flex justify-end">
+                        <button type="button" onClick={handleAI} disabled={isAnalyzing || !formData.device || !formData.description} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors border border-blue-200 shadow-sm">
+                           <BrainCircuit size={16}/> {isAnalyzing ? 'Analisando com IA...' : 'Gerar Pré-Diagnóstico com IA'}
                         </button>
                      </div>
+                     
                      {(aiResult || formData.aiDiagnosis) && (
-                        <div className="mt-2 p-3 bg-gray-50 rounded text-sm text-gray-700 border border-gray-200">
-                           <strong className="text-blue-700 block mb-1">Sugestão IA:</strong>
-                           {aiResult || formData.aiDiagnosis}
+                        <div className="p-4 bg-blue-50 rounded-lg text-sm text-gray-700 border border-blue-100 animate-fade-in">
+                           <strong className="text-blue-800 flex items-center gap-2 mb-2"><BrainCircuit size={14}/> Sugestão da IA:</strong>
+                           <p className="leading-relaxed whitespace-pre-wrap">{aiResult || formData.aiDiagnosis}</p>
                         </div>
                      )}
                   </div>
+               </div>
+               
+               {/* 5. Orçamento e Itens */}
+               <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 border-b border-gray-100 pb-2">
+                     <Wrench className="text-green-600" size={20}/> Orçamento (Peças e Serviços)
+                  </h3>
                   
-                  <div className="md:col-span-4 border-t border-gray-200 my-2"></div>
-
-                  {/* Row 5: Add Items (Compact) */}
-                  <div className="md:col-span-4">
-                     <h3 className="font-bold text-gray-700 mb-3 text-sm flex items-center gap-2">Adicionar Itens (Peças/Serviços)</h3>
-                     
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
                      <div className="flex flex-col md:flex-row gap-4 mb-4">
                         {/* Product Add */}
-                        <div className="flex-1 flex gap-2">
-                           <select className="input text-sm" value={selectedProductId} onChange={e => {
-                                 setSelectedProductId(e.target.value);
-                                 const p = products.find(prod => prod.id === e.target.value);
-                                 if (p) setProductPrice(p.price);
-                              }}>
-                              <option value="">+ Produto...</option>
-                              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                           </select>
-                           <input type="number" className="input w-20 text-sm" placeholder="Qtd" value={productQty} onChange={e => setProductQty(Number(e.target.value))}/>
-                           <input type="number" className="input w-24 text-sm" placeholder="R$" value={productPrice} onChange={e => setProductPrice(Number(e.target.value))}/>
-                           <button type="button" onClick={handleAddProduct} className="bg-gray-100 border border-gray-300 text-gray-600 hover:bg-gray-200 p-2 rounded"><Plus size={18}/></button>
+                        <div className="flex-1 flex gap-2 items-end">
+                           <div className="flex-1">
+                              <label className="label">Adicionar Produto</label>
+                              <select className="input text-sm" value={selectedProductId} onChange={e => {
+                                    setSelectedProductId(e.target.value);
+                                    const p = products.find(prod => prod.id === e.target.value);
+                                    if (p) setProductPrice(p.price);
+                                 }}>
+                                 <option value="">Selecione...</option>
+                                 {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                              </select>
+                           </div>
+                           <div className="w-20">
+                              <label className="label">Qtd</label>
+                              <input type="number" className="input text-sm" value={productQty} onChange={e => setProductQty(Number(e.target.value))}/>
+                           </div>
+                           <div className="w-24">
+                              <label className="label">Valor</label>
+                              <input type="number" className="input text-sm" value={productPrice} onChange={e => setProductPrice(Number(e.target.value))}/>
+                           </div>
+                           <button type="button" onClick={handleAddProduct} className="bg-gray-800 text-white hover:bg-gray-700 p-2.5 rounded-lg mb-[1px]"><Plus size={18}/></button>
                         </div>
+                        
                         {/* Service Add */}
-                        <div className="flex-1 flex gap-2">
-                           <select className="input text-sm" value={selectedServiceId} onChange={e => {
-                                 setSelectedServiceId(e.target.value);
-                                 const s = services.find(svc => svc.id === e.target.value);
-                                 if (s) { setServicePrice(s.price); setServiceDescription(s.name); } 
-                                 else { setServiceDescription(''); }
-                              }}>
-                              <option value="">+ Serviço...</option>
-                              {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                              <option value="custom">Outro</option>
-                           </select>
-                           {selectedServiceId === 'custom' && <input className="input text-sm" placeholder="Desc." value={serviceDescription} onChange={e => setServiceDescription(e.target.value)}/>}
-                           <input type="number" className="input w-24 text-sm" placeholder="R$" value={servicePrice} onChange={e => setServicePrice(Number(e.target.value))}/>
-                           <button type="button" onClick={handleAddService} className="bg-gray-100 border border-gray-300 text-gray-600 hover:bg-gray-200 p-2 rounded"><Plus size={18}/></button>
+                        <div className="flex-1 flex gap-2 items-end border-l border-gray-200 pl-4">
+                           <div className="flex-1">
+                              <label className="label">Adicionar Serviço</label>
+                              <select className="input text-sm" value={selectedServiceId} onChange={e => {
+                                    setSelectedServiceId(e.target.value);
+                                    const s = services.find(svc => svc.id === e.target.value);
+                                    if (s) { setServicePrice(s.price); setServiceDescription(s.name); } 
+                                    else { setServiceDescription(''); }
+                                 }}>
+                                 <option value="">Selecione...</option>
+                                 {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                 <option value="custom">Outro (Manual)</option>
+                              </select>
+                           </div>
+                           {selectedServiceId === 'custom' && (
+                              <div className="flex-1">
+                                 <label className="label">Descrição</label>
+                                 <input className="input text-sm" value={serviceDescription} onChange={e => setServiceDescription(e.target.value)}/>
+                              </div>
+                           )}
+                           <div className="w-24">
+                              <label className="label">Valor</label>
+                              <input type="number" className="input text-sm" value={servicePrice} onChange={e => setServicePrice(Number(e.target.value))}/>
+                           </div>
+                           <button type="button" onClick={handleAddService} className="bg-gray-800 text-white hover:bg-gray-700 p-2.5 rounded-lg mb-[1px]"><Plus size={18}/></button>
                         </div>
                      </div>
-
-                     {/* Items List */}
-                     {addedItems.length > 0 && (
-                        <div className="bg-white rounded border border-gray-300 overflow-hidden">
-                           <table className="w-full text-sm text-left">
-                              <thead className="bg-gray-100 text-xs font-bold text-gray-600 uppercase">
-                                 <tr><th className="p-2">Item</th><th className="p-2 text-center">Tipo</th><th className="p-2 text-right">Valor</th><th className="p-2"></th></tr>
-                              </thead>
-                              <tbody>
-                                 {addedItems.map((item, idx) => (
-                                    <tr key={idx} className="border-t border-gray-200">
-                                       <td className="p-2">{item.name} <span className="text-xs text-gray-500">x{item.quantity}</span></td>
-                                       <td className="p-2 text-center text-xs text-gray-500 uppercase">{item.type === 'product' ? 'Peça' : 'Serviço'}</td>
-                                       <td className="p-2 text-right font-medium">R$ {item.total.toFixed(2)}</td>
-                                       <td className="p-2 text-center"><button type="button" onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button></td>
-                                    </tr>
-                                 ))}
-                              </tbody>
-                              <tfoot className="bg-gray-50 font-bold text-gray-800">
-                                 <tr>
-                                    <td colSpan={2} className="p-2 text-right">Total Estimado:</td>
-                                    <td className="p-2 text-right text-blue-600">R$ {totalValue.toFixed(2)}</td>
-                                    <td></td>
-                                 </tr>
-                              </tfoot>
-                           </table>
-                        </div>
-                     )}
                   </div>
 
-                  <div className="md:col-span-4">
-                     <label className="label">Garantia</label>
+                  {/* Items List */}
+                  {addedItems.length > 0 ? (
+                     <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="w-full text-sm text-left">
+                           <thead className="bg-gray-100 text-xs font-bold text-gray-600 uppercase">
+                              <tr><th className="p-3">Item</th><th className="p-3 text-center">Tipo</th><th className="p-3 text-right">Valor Total</th><th className="p-3 text-center">Ações</th></tr>
+                           </thead>
+                           <tbody>
+                              {addedItems.map((item, idx) => (
+                                 <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
+                                    <td className="p-3 font-medium text-gray-800">{item.name} <span className="text-xs text-gray-500 font-normal ml-1">x{item.quantity}</span></td>
+                                    <td className="p-3 text-center text-xs text-gray-500 uppercase bg-gray-50 mx-2 rounded">{item.type === 'product' ? 'Peça' : 'Mão de Obra'}</td>
+                                    <td className="p-3 text-right font-bold text-gray-700">R$ {item.total.toFixed(2)}</td>
+                                    <td className="p-3 text-center"><button type="button" onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded transition-colors"><Trash2 size={16}/></button></td>
+                                 </tr>
+                              ))}
+                           </tbody>
+                           <tfoot className="bg-gray-800 text-white">
+                              <tr>
+                                 <td colSpan={2} className="p-3 text-right font-bold uppercase text-xs">Valor Total Estimado:</td>
+                                 <td className="p-3 text-right font-bold text-lg text-green-400">R$ {totalValue.toFixed(2)}</td>
+                                 <td></td>
+                              </tr>
+                           tfoot>
+                        </table>
+                     </div>
+                  ) : (
+                     <div className="text-center p-8 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-sm">
+                        Nenhum item ou serviço adicionado ao orçamento.
+                     </div>
+                  )}
+
+                  <div className="mt-6">
+                     <label className="label">Termo de Garantia</label>
                      <select className="input" value={formData.warranty} onChange={e => setFormData({...formData, warranty: e.target.value})}>
                         <option>Sem garantia</option>
                         <option>30 Dias (Serviço)</option>
@@ -711,18 +778,18 @@ export const ServiceOrders: React.FC = () => {
                   </div>
                </div>
 
-               <div className="flex justify-end pt-4 border-t border-gray-200 gap-3">
-                  <button type="button" onClick={handleCloseModal} className="px-6 py-2.5 rounded font-bold text-gray-600 hover:bg-gray-100 border border-gray-300">Cancelar</button>
-                  <button type="submit" className="bg-blue-600 text-white px-8 py-2.5 rounded font-bold hover:bg-blue-700 shadow flex items-center gap-2">
-                     <CheckCircle size={18}/> {editingOS ? 'Salvar Alterações' : 'Criar Ordem de Serviço'}
+               <div className="flex justify-end pt-4 gap-4 pb-4">
+                  <button type="button" onClick={handleCloseModal} className="px-6 py-3 rounded-xl font-bold text-gray-600 hover:bg-gray-200 bg-gray-100 transition-colors">Cancelar</button>
+                  <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg hover:shadow-blue-900/30 flex items-center gap-2 transition-all transform active:scale-95">
+                     <CheckCircle size={20}/> {editingOS ? 'Salvar Alterações' : 'Criar Ordem de Serviço'}
                   </button>
                </div>
             </form>
          </div>
          
          <style>{`
-            .label { @apply block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1; }
-            .input { @apply w-full border border-gray-300 p-2 rounded outline-none focus:border-blue-500 transition-colors text-sm text-gray-800 bg-white; }
+            .label { @apply block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5; }
+            .input { @apply w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all text-gray-800 text-sm focus:border-blue-500; }
             
             @media print {
                body * {
