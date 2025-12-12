@@ -1036,7 +1036,6 @@ export const ServiceOrders: React.FC = () => {
   );
 
   const OSListTab = () => {
-     // ... (Existing OSListTab code) ...
      const [term, setTerm] = useState('');
      const filtered = serviceOrders.filter(os => 
         os.customerName.toLowerCase().includes(term.toLowerCase()) || 
@@ -1054,88 +1053,107 @@ export const ServiceOrders: React.FC = () => {
 
      return (
         <div className="space-y-6 animate-fade-in">
-           <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-200 w-full max-w-md">
+           {/* Search Bar & Button */}
+           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-200 w-full max-w-md shadow-sm">
                  <Search size={20} className="text-gray-400"/>
                  <input 
-                    placeholder="Buscar OS..." 
-                    className="flex-1 outline-none" 
+                    placeholder="Buscar por cliente, aparelho, OS..." 
+                    className="flex-1 outline-none text-gray-700 bg-transparent" 
                     value={term} 
                     onChange={e => setTerm(e.target.value)}
                  />
               </div>
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className="bg-accent hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm"
+                className="bg-accent hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm whitespace-nowrap"
               >
                  <Plus size={20} /> Nova OS
               </button>
            </div>
            
-           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filtered.map(os => (
-               <div key={os.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all group flex flex-col">
-                  <div className="p-5 flex-1 cursor-pointer" onClick={() => { setEditingOS(os); setIsModalOpen(true); }}>
-                     <div className="flex justify-between items-start mb-3">
-                        <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{os.id}</span>
-                     </div>
-                     <h3 className="font-bold text-lg text-gray-800 mb-1">{os.device}</h3>
-                     <p className="text-gray-600 text-sm mb-4 flex items-center gap-1"><Users size={14}/> {os.customerName}</p>
-                     
-                     <div className="bg-gray-50 p-3 rounded-lg mb-4 border border-gray-100">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1 font-bold">Problema Relatado</p>
-                        <p className="text-sm text-gray-700 line-clamp-2">{os.description}</p>
-                     </div>
-                     <div className="flex justify-between items-center">
-                        {os.imei && <p className="text-xs text-gray-400">IMEI: {os.imei}</p>}
-                        <p className="text-sm font-bold text-blue-600">R$ {os.totalValue.toFixed(2)}</p>
-                     </div>
-                  </div>
-
-                  <div className="p-4 border-t border-gray-100 bg-gray-50 flex flex-col gap-3">
-                     <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-1 text-xs text-gray-500">
-                           <Clock size={14}/> {new Date(os.createdAt).toLocaleDateString()}
-                        </div>
-                        <div className="flex gap-2">
+           {/* Table View */}
+           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+             <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-gray-600">
+                <thead className="bg-gray-50 text-xs uppercase font-bold text-gray-500 border-b border-gray-100">
+                  <tr>
+                    <th className="px-6 py-4">OS / Data</th>
+                    <th className="px-6 py-4">Aparelho / Cliente</th>
+                    <th className="px-6 py-4">Defeito Relatado</th>
+                    <th className="px-6 py-4 text-center">Status</th>
+                    <th className="px-6 py-4 text-right">Total</th>
+                    <th className="px-6 py-4 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.length === 0 ? (
+                     <tr><td colSpan={6} className="p-8 text-center text-gray-400">Nenhuma ordem de serviço encontrada.</td></tr>
+                  ) : filtered.map(os => (
+                    <tr key={os.id} className="hover:bg-blue-50/30 transition-colors group">
+                      <td className="px-6 py-4 align-top">
+                         <span className="font-mono text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded block w-fit mb-1">{os.id}</span>
+                         <div className="flex items-center gap-1 text-xs text-gray-400">
+                           <Clock size={12}/> {new Date(os.createdAt).toLocaleDateString()}
+                         </div>
+                      </td>
+                      <td className="px-6 py-4 align-top">
+                         <p className="font-bold text-gray-800 text-base">{os.device}</p>
+                         <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                            <User size={12}/> {os.customerName}
+                         </div>
+                         <div className="text-xs text-gray-400 mt-0.5">
+                            {os.imei ? `IMEI: ${os.imei}` : ''}
+                         </div>
+                      </td>
+                      <td className="px-6 py-4 align-top max-w-xs">
+                         <p className="text-gray-600 line-clamp-2" title={os.description}>{os.description}</p>
+                      </td>
+                      <td className="px-6 py-4 align-top text-center">
+                         <select 
+                            value={os.status}
+                            onChange={(e) => handleStatusChange(os.id, e.target.value as OSStatus)}
+                            disabled={os.status === OSStatus.FINALIZADO}
+                            className={`text-xs font-bold uppercase py-1.5 px-2 rounded border cursor-pointer outline-none transition-colors w-full max-w-[140px]
+                               ${os.status === OSStatus.FINALIZADO ? 'bg-gray-200 text-gray-500 cursor-not-allowed border-gray-300' : 
+                                 os.status === OSStatus.APROVADO ? 'bg-green-100 text-green-700 border-green-200' :
+                                 os.status === OSStatus.NAO_APROVADO ? 'bg-red-100 text-red-700 border-red-200' :
+                                 os.status === OSStatus.AGUARDANDO_PECAS ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                                 os.status === OSStatus.CONCLUIDO ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                               }`}
+                         >
+                            {Object.values(OSStatus).map(status => (
+                               <option key={status} value={status}>{status}</option>
+                            ))}
+                         </select>
+                      </td>
+                      <td className="px-6 py-4 align-top text-right font-bold text-blue-600">
+                         R$ {os.totalValue.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 align-top text-center">
+                         <div className="flex justify-center gap-2">
                            <button 
                               onClick={() => { setEditingOS(os); setIsModalOpen(true); }}
-                              className="text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 p-1.5 rounded-lg transition-colors shadow-sm"
+                              className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors"
                               title="Editar OS"
                            >
-                              <Edit size={18} />
+                              <Edit size={16} />
                            </button>
                            <button 
                               onClick={() => setPrintingOS(os)}
-                              className="text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 p-1.5 rounded-lg transition-colors shadow-sm" 
+                              className="text-gray-600 bg-gray-100 hover:bg-gray-200 p-2 rounded-lg transition-colors" 
                               title="Imprimir OS"
                            >
-                              <Printer size={18} />
+                              <Printer size={16} />
                            </button>
-                        </div>
-                     </div>
-                     
-                     {/* Status Dropdown */}
-                     <select 
-                        value={os.status}
-                        onChange={(e) => handleStatusChange(os.id, e.target.value as OSStatus)}
-                        disabled={os.status === OSStatus.FINALIZADO}
-                        className={`w-full text-xs font-bold uppercase p-2 rounded border cursor-pointer outline-none transition-colors
-                           ${os.status === OSStatus.FINALIZADO ? 'bg-gray-200 text-gray-500 cursor-not-allowed border-gray-300' : 
-                             os.status === OSStatus.APROVADO ? 'bg-green-100 text-green-700 border-green-200' :
-                             os.status === OSStatus.NAO_APROVADO ? 'bg-red-100 text-red-700 border-red-200' :
-                             os.status === OSStatus.AGUARDANDO_PECAS ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                             os.status === OSStatus.CONCLUIDO ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                             'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                           }`}
-                     >
-                        {Object.values(OSStatus).map(status => (
-                           <option key={status} value={status}>{status}</option>
-                        ))}
-                     </select>
-                  </div>
-               </div>
-            ))}
+                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+             </div>
            </div>
         </div>
      );
@@ -1300,8 +1318,8 @@ export const ServiceOrders: React.FC = () => {
        <OSPrintModal />
        
        <style>{`
-          .label { @apply block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1; }
-          .input { @apply w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow; }
+          .label { @apply block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1.5; }
+          .input { @apply w-full border border-gray-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-all text-gray-800 text-sm focus:border-blue-500; }
        `}</style>
     </div>
   );
